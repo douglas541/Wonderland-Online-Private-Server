@@ -151,6 +151,7 @@ namespace PServer_v2.NetWork.Managers
         public UInt16 background = 140;
         public eBattleType type;
         public cFighter startedby;
+        public cCharacter battleStarter;
         List<cFighter> leftside = new List<cFighter>(8);
         List<cFighter> rightside = new List<cFighter>(8);
         public Queue<BattleCMD> datacal = new Queue<BattleCMD>();
@@ -481,6 +482,21 @@ namespace PServer_v2.NetWork.Managers
                         f.character.inbattle = false;
                         f.character.ambushed = false;
                         RemFighter(f);
+                    }
+                    else if (!f.player && !f.alive && f.placement == eFighterType.mobside)
+                    {
+                        if (this.type == eBattleType.normal && this.battleStarter != null)
+                        {
+                            cMap map = globals.gMapManager.GetMapByID(this.battleStarter.map.MapID);
+                            if (map != null)
+                            {
+                                NpcEntries npc = map.GetNpcByClickID(f.clickID);
+                                if (npc != null)
+                                {
+                                    map.MarkNpcDead(npc);
+                                }
+                            }
+                        }
                     }
                 }
                 catch { }
@@ -824,7 +840,27 @@ namespace PServer_v2.NetWork.Managers
                     case eFighterType.pcside:
                         {
                             if (rightside.Count - 1 <= 0)
+                            {
+                                if (this.type == eBattleType.normal)
+                                {
+                                    foreach (cFighter mob in leftside.Where(f => !f.player && f.placement == eFighterType.mobside))
+                                    {
+                                        if (this.battleStarter != null)
+                                        {
+                                            cMap map = globals.gMapManager.GetMapByID(this.battleStarter.map.MapID);
+                                            if (map != null)
+                                            {
+                                                NpcEntries npc = map.GetNpcByClickID(mob.clickID);
+                                                if (npc != null)
+                                                {
+                                                    map.MarkNpcDead(npc);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 EndBattle();
+                            }
                             else
                                 RemFighter(e.src);
                         } break;
@@ -950,6 +986,14 @@ namespace PServer_v2.NetWork.Managers
         }
         void Send_Attack(cFighter src, ushort skill, cFighter dst, bool miss, uint Damg)
         {
+            if (!miss && Damg > 0)
+            {
+                if (dst.curhp > Damg)
+                    dst.curhp -= Damg;
+                else
+                    dst.curhp = 0;
+            }
+            
             cFighter[] re = new cFighter[leftside.Count + rightside.Count];
             leftside.CopyTo(re);
             rightside.CopyTo(re, leftside.Count);
@@ -961,6 +1005,27 @@ namespace PServer_v2.NetWork.Managers
                     globals.ac50.Send_6(src, 0, rt.character);
                     globals.ac50.Send_1(src, skill, dst, miss, Damg, rt.character);
                     globals.gServer.SendCombinepkt(rt.character);
+                }
+            }
+            
+            if (!dst.alive && !dst.player && dst.placement == eFighterType.mobside)
+            {
+                if (this.type == eBattleType.normal && this.battleStarter != null)
+                {
+                    cMap map = globals.gMapManager.GetMapByID(this.battleStarter.map.MapID);
+                    if (map != null)
+                    {
+                        NpcEntries npc = map.GetNpcByClickID(dst.clickID);
+                        if (npc != null)
+                        {
+                            map.MarkNpcDead(npc);
+                        }
+                    }
+                }
+                
+                if (!Checkforlife(true))
+                {
+                    EndBattle();
                 }
             }
         }
@@ -985,6 +1050,7 @@ namespace PServer_v2.NetWork.Managers
             cBattle battle = new cBattle(globals);
 
             battle.type = cBattle.eBattleType.pk;
+            battle.battleStarter = starter;
             //starter team
             cFighter f = new cFighter(globals);
             f.SetFrom(starter);
@@ -1029,6 +1095,7 @@ namespace PServer_v2.NetWork.Managers
             globals.Log("Battle Started \r\n");
             cBattle battle = new cBattle(globals);
             battle.type = cBattle.eBattleType.pk;
+            battle.battleStarter = starter;
 
             cFighter f = new cFighter(globals);
             f.SetFrom(starter);
@@ -1066,6 +1133,7 @@ namespace PServer_v2.NetWork.Managers
             globals.Log("Battle Started \r\n");
             cBattle battle = new cBattle(globals);
             battle.type = cBattle.eBattleType.normal;
+            battle.battleStarter = starter;
 
             cFighter f = new cFighter(globals);
             f.SetFrom(starter);

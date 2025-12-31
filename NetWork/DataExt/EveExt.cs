@@ -80,6 +80,8 @@ namespace PServer_v2.NetWork.DataExt
         public cMap location;
         public Npc myinfo;
         public cGlobals globals;
+        public bool isDead = false;
+        public TimeSpan respawnTime = new TimeSpan();
 
         #region MapNpc Info
         public UInt16 clickId;

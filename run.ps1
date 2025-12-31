@@ -5,6 +5,15 @@ $csprojPath = Join-Path $projectRoot "PServer v2.csproj"
 $exePath = Join-Path $projectRoot "bin\Debug\PServer v2.exe"
 $msbuildPath = "${env:ProgramFiles}\JetBrains\JetBrains Rider 2025.3.0.3\tools\MSBuild\Current\Bin\amd64\MSBuild.exe"
 
+function Get-LatestSourceWriteTime {
+    $includes = @("*.cs", "*.resx", "*.config", "*.json", "*.settings", "*.csproj")
+    $files = Get-ChildItem -Path $projectRoot -Recurse -File -Include $includes -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch "\\(bin|obj|packages)\\" }
+
+    if (-not $files) { return $null }
+    return ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime
+}
+
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  PServer v2 - Executor" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
@@ -40,7 +49,16 @@ if (-not (Test-Path $msbuildPath)) {
     }
 }
 
-if (-not (Test-Path $exePath) -or (Get-Item $csprojPath).LastWriteTime -gt (Get-Item $exePath).LastWriteTime) {
+$needsBuild = -not (Test-Path $exePath)
+if (-not $needsBuild) {
+    $exeTime = (Get-Item $exePath).LastWriteTime
+    $latestSourceTime = Get-LatestSourceWriteTime
+    if ($latestSourceTime -and $latestSourceTime -gt $exeTime) {
+        $needsBuild = $true
+    }
+}
+
+if ($needsBuild) {
     Write-Host "Compilando o projeto..." -ForegroundColor Yellow
     Write-Host ""
     

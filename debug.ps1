@@ -5,6 +5,15 @@ $exePath = Join-Path $projectRoot "bin\Debug\PServer v2.exe"
 $logPath = Join-Path $projectRoot "bin\Debug\LogOutput.txt"
 $msbuildPath = "${env:ProgramFiles}\JetBrains\JetBrains Rider 2025.3.0.3\tools\MSBuild\Current\Bin\amd64\MSBuild.exe"
 
+function Get-LatestSourceWriteTime {
+    $includes = @("*.cs", "*.resx", "*.config", "*.json", "*.settings", "*.csproj")
+    $files = Get-ChildItem -Path $projectRoot -Recurse -File -Include $includes -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch "\\(bin|obj|packages)\\" }
+
+    if (-not $files) { return $null }
+    return ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime
+}
+
 function Write-LogHeader {
     Clear-Host
     Write-Host "========================================" -ForegroundColor Cyan
@@ -47,7 +56,16 @@ function Build-Project {
         return $false
     }
     
-    if (-not (Test-Path $exePath) -or (Test-Path $csprojPath) -and (Get-Item $csprojPath).LastWriteTime -gt (Get-Item $exePath).LastWriteTime) {
+    $needsBuild = -not (Test-Path $exePath)
+    if (-not $needsBuild -and (Test-Path $exePath)) {
+        $exeTime = (Get-Item $exePath).LastWriteTime
+        $latestSourceTime = Get-LatestSourceWriteTime
+        if ($latestSourceTime -and $latestSourceTime -gt $exeTime) {
+            $needsBuild = $true
+        }
+    }
+
+    if ($needsBuild) {
         Write-Host "Compilando projeto..." -ForegroundColor Yellow
         Push-Location $projectRoot
         try {

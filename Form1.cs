@@ -26,6 +26,10 @@ namespace PServer_v2
             globals = new cGlobals();
             InitializeComponent();
             
+            numericUpDown3.Minimum = 0;
+            numericUpDown3.Value = 5;
+            globals.Limit = (int)numericUpDown3.Value;
+            
             var settings = DataBase.AppSettings.Load();
             globals.UserDataBase = new DataBase.cDatabase(settings.Database.UserDatabasePath);
             globals.logList = new Queue<string>();
@@ -39,12 +43,20 @@ namespace PServer_v2
         {
             globals.UpTime.Restart();
             
+            numericUpDown3.Value = 5;
+            globals.Limit = (int)numericUpDown3.Value;
+            
             var settings = DataBase.AppSettings.Load();
+            globals.MobRespawnMinSeconds = settings.MobRespawn.MinSeconds;
+            globals.MobRespawnMaxSeconds = settings.MobRespawn.MaxSeconds;
+            numericUpDown10.Value = globals.MobRespawnMinSeconds;
+            numericUpDown11.Value = globals.MobRespawnMaxSeconds;
             
             DataBase.DatabaseInitializer initializer = new DataBase.DatabaseInitializer(globals);
             initializer.Initialize();
             
             globals.cRegServer = new NetWork.Registration.RegServer(globals);
+            globals.Limit = (int)numericUpDown3.Value;
             globals.gServer = new cServer(globals);
             globals.gGroundData = new DataLoaders.GroundMMGDataFile();
             string groundDataDir = GetDataDirectory();
@@ -675,6 +687,16 @@ namespace PServer_v2
         {
             globals.Limit = (int)numericUpDown3.Value;
             globals.cRegServer.PushLimit();
+        }
+
+        private void numericUpDown10_ValueChanged(object sender, EventArgs e)
+        {
+            globals.MobRespawnMinSeconds = (int)numericUpDown10.Value;
+        }
+
+        private void numericUpDown11_ValueChanged(object sender, EventArgs e)
+        {
+            globals.MobRespawnMaxSeconds = (int)numericUpDown11.Value;
         }
 
         private void button9_Click(object sender, EventArgs e)

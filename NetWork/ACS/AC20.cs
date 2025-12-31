@@ -156,7 +156,7 @@ namespace PServer_v2.NetWork.ACS
                 g.ac20.Send_8(g.packet.character);
                 return;
             }
-            g.packet.character.map.WarpRequest( WarpType.regular,g.packet.character,0,warp);
+            g.packet.character.map.WarpRequest(WarpType.SpecialWarp, g.packet.character, 0, warp);
         }
     }
 }

@@ -10,6 +10,7 @@ namespace PServer_v2.DataBase
         public DatabaseConfig Database { get; set; }
         public EnvironmentConfig Environment { get; set; }
         public AdminConfig Admin { get; set; }
+        public MobRespawnConfig MobRespawn { get; set; }
 
         public static AppSettings Load()
         {
@@ -52,6 +53,11 @@ namespace PServer_v2.DataBase
                     Password = "admin",
                     CharacterName = "admin",
                     GMLevel = 255
+                },
+                MobRespawn = new MobRespawnConfig
+                {
+                    MinSeconds = 5,
+                    MaxSeconds = 10
                 }
             };
         }
@@ -86,7 +92,8 @@ namespace PServer_v2.DataBase
             {
                 Database = new DatabaseConfig(),
                 Environment = new EnvironmentConfig(),
-                Admin = new AdminConfig()
+                Admin = new AdminConfig(),
+                MobRespawn = new MobRespawnConfig()
             };
 
             string dataDir = GetDataDirectory();
@@ -106,6 +113,8 @@ namespace PServer_v2.DataBase
             settings.Admin.Password = ExtractString(json, "Password", "admin");
             settings.Admin.CharacterName = ExtractString(json, "CharacterName", "admin");
             settings.Admin.GMLevel = ExtractInt(json, "GMLevel", 255);
+            settings.MobRespawn.MinSeconds = ExtractInt(json, "MobRespawnMinSeconds", 5);
+            settings.MobRespawn.MaxSeconds = ExtractInt(json, "MobRespawnMaxSeconds", 10);
 
             return settings;
         }
@@ -157,6 +166,12 @@ namespace PServer_v2.DataBase
         public string Password { get; set; }
         public string CharacterName { get; set; }
         public int GMLevel { get; set; }
+    }
+
+    public class MobRespawnConfig
+    {
+        public int MinSeconds { get; set; }
+        public int MaxSeconds { get; set; }
     }
 }
 

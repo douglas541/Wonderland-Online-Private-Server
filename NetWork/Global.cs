@@ -25,6 +25,8 @@ namespace PServer_v2.NetWork
         public System.Windows.Forms.DataGridView furdb;
         public String LoginMsg = "";
         public int Limit = 0;
+        public int MobRespawnMinSeconds = 5;
+        public int MobRespawnMaxSeconds = 10;
         public cCharacterManager gCharacterManager;
         public cMapManager gMapManager;
         public GroundMMGDataFile gGroundData;

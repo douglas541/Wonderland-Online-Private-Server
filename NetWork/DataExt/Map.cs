@@ -78,11 +78,23 @@ namespace PServer_v2.NetWork.DataExt
             {
                 //this will process all activities of a map until server closes
                 for (int a = 0; a < mapData.Npclist.Count; a++)
-                    if (mapData.Npclist[a].NeedUpdate(globals.UpTime.Elapsed))
+                {
+                    if (mapData.Npclist[a].isDead)
+                    {
+                        if (globals.UpTime.Elapsed >= mapData.Npclist[a].respawnTime)
+                        {
+                            mapData.Npclist[a].isDead = false;
+                            RespawnNpc(mapData.Npclist[a]);
+                        }
+                    }
+                    else if (mapData.Npclist[a].NeedUpdate(globals.UpTime.Elapsed))
+                    {
                         //check for character place
                         //get list of all players
                         
                         mapData.Npclist[a].Update(Characters, globals);
+                    }
+                }
                 //look at all battle maps
                 battleMng.Process();
                 //update ground items
@@ -253,6 +265,15 @@ namespace PServer_v2.NetWork.DataExt
         {
             return mapData.Npclist[to - 1];
         }
+        public NpcEntries GetNpcByClickID(UInt16 clickID)
+        {
+            foreach (NpcEntries npc in mapData.Npclist)
+            {
+                if (npc.clickId == clickID)
+                    return npc;
+            }
+            return null;
+        }
         public void SendNpcs(cCharacter c)
         {
             int ct = 0;
@@ -265,22 +286,65 @@ namespace PServer_v2.NetWork.DataExt
                 j.Header(22, 4);
                 foreach (NpcEntries h in mapData.Npclist)
                 {
-                    ct++;
-                    j.AddWord(h.clickId);
-                    if (h.unknownbyte3 != 5)
-                        j.AddWord(h.unknownword2);
-                    else
-                        j.AddWord(0);
-                    j.AddWord((ushort)h.x);
-                    j.AddWord((ushort)h.y);
-                    j.AddWord(h.unknownbyte4);
-                    j.AddDWord(0);
+                    if (!h.isDead)
+                    {
+                        ct++;
+                        j.AddWord(h.clickId);
+                        if (h.unknownbyte3 != 5)
+                            j.AddWord(h.unknownword2);
+                        else
+                            j.AddWord(0);
+                        j.AddWord((ushort)h.x);
+                        j.AddWord((ushort)h.y);
+                        j.AddWord(h.unknownbyte4);
+                        j.AddDWord(0);
+                    }
                 }
                 j.SetSize();
                 j.character = c;
                 j.Send();
             }
 
+        }
+
+        public void MarkNpcDead(NpcEntries npc)
+        {
+            if (npc != null && !npc.isDead)
+            {
+                npc.isDead = true;
+                Random rnd = new Random();
+                int respawnSeconds = rnd.Next(globals.MobRespawnMinSeconds, globals.MobRespawnMaxSeconds + 1);
+                npc.respawnTime = globals.UpTime.Elapsed + new TimeSpan(0, 0, respawnSeconds);
+                RemoveNpcFromMap(npc);
+            }
+        }
+
+        private void RemoveNpcFromMap(NpcEntries npc)
+        {
+            cSendPacket p = new cSendPacket(globals);
+            p.Header(22, 2);
+            p.AddWord(npc.clickId);
+            p.AddWord(0);
+            p.AddWord(0);
+            p.AddByte(0);
+            p.SetSize();
+            SendtoCharacters(p);
+        }
+
+        private void RespawnNpc(NpcEntries npc)
+        {
+            cSendPacket p = new cSendPacket(globals);
+            p.Header(22, 2);
+            p.AddWord(npc.clickId);
+            if (npc.unknownbyte3 != 5)
+                p.AddWord(npc.unknownword2);
+            else
+                p.AddWord(0);
+            p.AddWord((ushort)npc.x);
+            p.AddWord((ushort)npc.y);
+            p.AddByte(npc.unknownbyte4);
+            p.SetSize();
+            SendtoCharacters(p);
         }
         #endregion
         

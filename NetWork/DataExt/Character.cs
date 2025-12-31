@@ -192,7 +192,6 @@ namespace PServer_v2.NetWork.DataExt
             DataRow r = character.Rows[0];
             Int64 v;
             v = (Int64.Parse(r["characterID"].ToString())); characterID = (UInt32)v;
-            state = (byte)(Int64.Parse(r["state"].ToString()));
             name = (string)r["name"]; name = name.Trim();
             nickname = (string)r["nickname"]; nickname = nickname.Trim();
             password = (string)r["password"]; password = password.Trim();
@@ -234,10 +233,23 @@ namespace PServer_v2.NetWork.DataExt
         }
         void SetFlags(string s)
         {
-            string[] words = s.Split(' ');
-            state = byte.Parse(words[0]);
-            inCarnie = false; if (byte.Parse(words[1]) == 1) inCarnie = true;
-            inMap = false; if (byte.Parse(words[2]) == 1) inMap = true;
+            if (string.IsNullOrEmpty(s)) return;
+            string[] words = s.Trim().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length > 0)
+            {
+                if (byte.TryParse(words[0], out byte stateValue))
+                {
+                    state = stateValue;
+                }
+            }
+            if (words.Length > 1)
+            {
+                inCarnie = (byte.Parse(words[1]) == 1);
+            }
+            if (words.Length > 2)
+            {
+                inMap = (byte.Parse(words[2]) == 1);
+            }
         }
         void SetWarp(cWarp w, string s)
         {
