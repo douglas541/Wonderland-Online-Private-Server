@@ -25,7 +25,9 @@ namespace PServer_v2
         {            
             globals = new cGlobals();
             InitializeComponent();
-            globals.UserDataBase = new DataBase.cDatabase("C:\\pServer\\data\\PServer.db");
+            
+            var settings = DataBase.AppSettings.Load();
+            globals.UserDataBase = new DataBase.cDatabase(settings.Database.UserDatabasePath);
             globals.logList = new Queue<string>();
             globals.interfaceList = new Queue<int>();
             globals.READBUFFERSIZE = 2024;
@@ -35,15 +37,36 @@ namespace PServer_v2
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            globals.UpTime.Restart();            
+            globals.UpTime.Restart();
+            
+            var settings = DataBase.AppSettings.Load();
+            
+            DataBase.DatabaseInitializer initializer = new DataBase.DatabaseInitializer(globals);
+            initializer.Initialize();
+            
             globals.cRegServer = new NetWork.Registration.RegServer(globals);
             globals.gServer = new cServer(globals);
             globals.gGroundData = new DataLoaders.GroundMMGDataFile();
-            globals.gGroundData.LoadGroundNodes();
+            string groundDataDir = GetDataDirectory();
+            string groundMMGPath = System.IO.Path.Combine(groundDataDir, "Ground.MMG");
+            if (System.IO.File.Exists(groundMMGPath))
+            {
+                globals.gGroundData.SetGroundMMGPath(groundMMGPath);
+            }
+            bool groundLoaded = globals.gGroundData.LoadGroundNodes();
+            if (!groundLoaded)
+            {
+                globals.Log("AVISO: Ground.MMG não foi carregado. Mapas podem não funcionar corretamente.");
+            }
+            else
+            {
+                var nodeList = globals.gGroundData.GetNodeList();
+                globals.Log("Ground.MMG carregado com " + (nodeList != null ? nodeList.Count : 0) + " nós.");
+            }
             globals.gServer.sendList = new Queue<cSendPacket>();
             globals.gMapManager = new cMapManager(globals);
             globals.gUserManager = new cUserManager(globals);
-            globals.WloDatabase = new DataBase.cDatabase("C:\\pServer\\data\\WonderlandPServer.s3db");
+            globals.WloDatabase = new DataBase.cDatabase(settings.Database.GameDatabasePath);
             globals.gCharacterManager = new cCharacterManager(globals);
             globals.gSceneManager = new DataLoaders.SceneDataFile(globals);
             globals.gEveManager = new DataLoaders.EveManager(globals);
@@ -110,14 +133,23 @@ namespace PServer_v2
 
             try
             {
-                globals.gItemManager.LoadItems("C:\\pServer\\data\\Item.dat");
-                globals.gSceneManager.LoadScenes("C:\\pServer\\data\\SceneData.Dat");
-                globals.gEveManager.LoadFile("C:\\pServer\\data\\eve.EMG");
+                string dataDirectory = GetDataDirectory();
+                globals.Log("Data Directory: " + dataDirectory);
+                
+                string itemPath = System.IO.Path.Combine(dataDirectory, "Item.dat");
+                string scenePath = System.IO.Path.Combine(dataDirectory, "SceneData.Dat");
+                string evePath = System.IO.Path.Combine(dataDirectory, "eve.EMG");
+                string skillPath = System.IO.Path.Combine(dataDirectory, "Skill.Dat");
+                string npcPath = System.IO.Path.Combine(dataDirectory, "Npc.Dat");
+                
+                globals.gItemManager.LoadItems(itemPath);
+                globals.gSceneManager.LoadScenes(scenePath);
+                globals.gEveManager.LoadFile(evePath);
                 globals.gMapManager.SetListBox(listBox1);
                 globals.gskillManager = new DataLoaders.cSkillDat(globals);
-                globals.gskillManager.LoadSkills("C:\\pServer\\data\\Skill.Dat");
+                globals.gskillManager.LoadSkills(skillPath);
                 globals.gNpcManager = new DataLoaders.NpcDat(globals);
-                globals.gNpcManager.LoadNpc("C:\\pServer\\data\\Npc.Dat");
+                globals.gNpcManager.LoadNpc(npcPath);
                 
                 DataLoaders.Npc test1 = globals.gNpcManager.GetNpcbyID(17210);
                 DataLoaders.Npc test2 = globals.gNpcManager.GetNpcbyID(17211);
@@ -689,6 +721,31 @@ namespace PServer_v2
         private void button1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private static string GetDataDirectory()
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string projectRoot = baseDir;
+            
+            for (int i = 0; i < 5; i++)
+            {
+                string testPath = System.IO.Path.Combine(projectRoot, "pServer", "data");
+                if (System.IO.Directory.Exists(testPath))
+                {
+                    return System.IO.Path.GetFullPath(testPath);
+                }
+                string parent = System.IO.Path.GetDirectoryName(projectRoot);
+                if (string.IsNullOrEmpty(parent) || parent == projectRoot) break;
+                projectRoot = parent;
+            }
+            
+            string defaultPath = System.IO.Path.Combine(baseDir, "pServer", "data");
+            if (!System.IO.Directory.Exists(defaultPath))
+            {
+                System.IO.Directory.CreateDirectory(defaultPath);
+            }
+            return System.IO.Path.GetFullPath(defaultPath);
         }
     }
 }

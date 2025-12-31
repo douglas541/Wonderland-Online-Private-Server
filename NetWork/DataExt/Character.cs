@@ -272,7 +272,29 @@ namespace PServer_v2.NetWork.DataExt
             globals.ac26.Send_4(gold);//244, 68, 6, 0, 26, 4, 70, 78, 0, 0,  //gold
             storage.Send_Storage();
             globals.ac5.Send_3(this);
-            globals.gMapManager.GetMapByID(map.MapID).LogintoMap(this);
+            cMap targetMap = globals.gMapManager.GetMapByID(map.MapID);
+            if (targetMap != null)
+            {
+                targetMap.LogintoMap(this);
+            }
+            else
+            {
+                globals.Log("ERRO: Mapa " + map.MapID + " não encontrado no MapManager. Criando mapa temporário.");
+                cMap newMap = new cMap(globals);
+                newMap.MapID = map.MapID;
+                newMap.mapData = globals.gEveManager.GetbyID(map.MapID);
+                if (newMap.mapData != null)
+                {
+                    try
+                    {
+                        newMap.sceneinfo = globals.gSceneManager.GetSceneByID(newMap.mapData.sceneID);
+                        newMap.name = newMap.sceneinfo.Name;
+                    }
+                    catch { }
+                }
+                globals.gMapManager.mapList.Add(newMap);
+                newMap.LogintoMap(this);
+            }
                 
         }
         public void ExpGain(uint ammt)

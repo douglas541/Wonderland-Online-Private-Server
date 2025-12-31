@@ -1,5 +1,5 @@
 SceneID  :------->  13005
-SceneNameLength  :------->  12
+SceneNameLength  :------->  8
 SceneName  :------->  System.Byte[]
 UnknownByte1  :------->  4
 UnknownByte2  :------->  0

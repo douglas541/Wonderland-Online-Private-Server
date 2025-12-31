@@ -138,20 +138,113 @@ namespace PServer_v2.NetWork.DataExt
         }
         public void Load()
         {
-            FloorData = globals.gGroundData.GetNodeBySceneName(mapID.ToString());
-            mapData.Entry_Points = globals.gEveManager.LoadEntryEntries(mapData);
-            mapData.Npclist = globals.gEveManager.LoadNpcEntries(mapData);
-            mapData.MiningAreas = globals.gEveManager.LoadMiningEntries(mapData);
-            mapData.ItemAreas = globals.gEveManager.LoadItemEntries(mapData);
-            mapData.WarpLoc = globals.gEveManager.LoadWarpEntries(mapData);
-            mapData.InteractiveInfo = globals.gEveManager.LoadInteractiveEntries(mapData);
-            mapData.Events = globals.gEveManager.LoadEventEntries(mapData);
-            mapData.Group = globals.gEveManager.LoadGroupEntries(mapData);
-            mapData.ExtGroup = globals.gEveManager.LoadgroupExtEntries(mapData);
-            mapData.PreEvents = globals.gEveManager.LoadpreEventEntries(mapData);
-            mapData.ExtBattleInfo = globals.gEveManager.LoadBattleEntries(mapData);
-            SetItems();
-            dataloaded = true;
+            Load(false);
+        }
+        
+        private void Load(bool isRetry)
+        {
+            try
+            {
+                FloorData = globals.gGroundData.GetNodeBySceneName(mapID.ToString());
+                mapData.Entry_Points = globals.gEveManager.LoadEntryEntries(mapData);
+                mapData.Npclist = globals.gEveManager.LoadNpcEntries(mapData);
+                mapData.MiningAreas = globals.gEveManager.LoadMiningEntries(mapData);
+                mapData.ItemAreas = globals.gEveManager.LoadItemEntries(mapData);
+                mapData.WarpLoc = globals.gEveManager.LoadWarpEntries(mapData);
+                mapData.InteractiveInfo = globals.gEveManager.LoadInteractiveEntries(mapData);
+                mapData.Events = globals.gEveManager.LoadEventEntries(mapData);
+                mapData.Group = globals.gEveManager.LoadGroupEntries(mapData);
+                mapData.ExtGroup = globals.gEveManager.LoadgroupExtEntries(mapData);
+                mapData.PreEvents = globals.gEveManager.LoadpreEventEntries(mapData);
+                mapData.ExtBattleInfo = globals.gEveManager.LoadBattleEntries(mapData);
+                SetItems();
+                dataloaded = true;
+            }
+            catch (DataLoaders.NodeNotFoundException ex)
+            {
+                globals.Log("Erro ao carregar mapa " + mapID + ": " + ex.Message);
+                
+                if (!isRetry)
+                {
+                    UInt16 fallbackMapID = FindValidMapID();
+                    if (fallbackMapID != 0 && fallbackMapID != mapID)
+                    {
+                        globals.Log("Tentando usar mapa alternativo: " + fallbackMapID);
+                        mapID = fallbackMapID;
+                        Load(true);
+                        return;
+                    }
+                }
+                
+                globals.Log("Nenhum mapa válido encontrado. Continuando sem carregar dados do terreno do mapa.");
+                FloorData = new DataLoaders.GroundNodeInfo();
+                mapData.Entry_Points = globals.gEveManager.LoadEntryEntries(mapData);
+                mapData.Npclist = globals.gEveManager.LoadNpcEntries(mapData);
+                mapData.MiningAreas = globals.gEveManager.LoadMiningEntries(mapData);
+                mapData.ItemAreas = globals.gEveManager.LoadItemEntries(mapData);
+                mapData.WarpLoc = globals.gEveManager.LoadWarpEntries(mapData);
+                mapData.InteractiveInfo = globals.gEveManager.LoadInteractiveEntries(mapData);
+                mapData.Events = globals.gEveManager.LoadEventEntries(mapData);
+                mapData.Group = globals.gEveManager.LoadGroupEntries(mapData);
+                mapData.ExtGroup = globals.gEveManager.LoadgroupExtEntries(mapData);
+                mapData.PreEvents = globals.gEveManager.LoadpreEventEntries(mapData);
+                mapData.ExtBattleInfo = globals.gEveManager.LoadBattleEntries(mapData);
+                SetItems();
+                dataloaded = true;
+            }
+            catch (Exception ex)
+            {
+                globals.Log("Erro inesperado ao carregar mapa " + mapID + ": " + ex.Message);
+                FloorData = new DataLoaders.GroundNodeInfo();
+                dataloaded = false;
+            }
+        }
+        
+        private UInt16 FindValidMapID()
+        {
+            try
+            {
+                var nodeList = globals.gGroundData.GetNodeList();
+                if (nodeList != null && nodeList.Count > 0)
+                {
+                    foreach (var node in nodeList)
+                    {
+                        string nodeName = node.Name;
+                        if (!string.IsNullOrEmpty(nodeName) && nodeName.EndsWith(".map"))
+                        {
+                            string mapIdStr = nodeName.Replace(".map", "");
+                            if (ushort.TryParse(mapIdStr, out ushort mapId))
+                            {
+                                try
+                                {
+                                    globals.gGroundData.GetNodeBySceneName(mapIdStr);
+                                    return mapId;
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                }
+                
+                if (globals.gMapManager != null && globals.gMapManager.mapList != null && globals.gMapManager.mapList.Count > 0)
+                {
+                    foreach (var map in globals.gMapManager.mapList)
+                    {
+                        if (map.MapID != 0)
+                        {
+                            try
+                            {
+                                globals.gGroundData.GetNodeBySceneName(map.MapID.ToString());
+                                return map.MapID;
+                            }
+                            catch { }
+                        }
+                    }
+                }
+            }
+            catch { }
+            
+            return 0;
         }
         
         #region Npc Section
@@ -529,7 +622,17 @@ namespace PServer_v2.NetWork.DataExt
             c.map = this;
 
             if (!dataloaded)
-                Load();
+            {
+                try
+                {
+                    Load();
+                }
+                catch (Exception ex)
+                {
+                    globals.Log("Erro ao carregar dados do mapa " + mapID + " durante login: " + ex.Message);
+                    dataloaded = false;
+                }
+            }
             charList.Add(c);
 
             for (int a = 0; a < charList.Count; a++)

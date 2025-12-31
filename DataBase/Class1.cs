@@ -200,6 +200,44 @@ namespace PServer_v2.DataBase
             }
         }
 
+        public bool CreateDatabaseIfNotExists()
+        {
+            try
+            {
+                string dbPath = dbConnection.Replace("Data Source=", "").Replace("Data Source = ", "").Trim();
+                string directory = System.IO.Path.GetDirectoryName(dbPath);
+                
+                if (!System.IO.Directory.Exists(directory))
+                {
+                    System.IO.Directory.CreateDirectory(directory);
+                }
+
+                if (!System.IO.File.Exists(dbPath))
+                {
+                    SQLiteConnection.CreateFile(dbPath);
+                    return true;
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public bool TableExists(string tableName)
+        {
+            try
+            {
+                string query = "SELECT name FROM sqlite_master WHERE type='table' AND name='" + tableName + "';";
+                string result = ExecuteScalar(query);
+                return !string.IsNullOrEmpty(result);
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
     }
 }

@@ -11,8 +11,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PServer_v2</RootNamespace>
     <AssemblyName>PServer v2</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
@@ -65,7 +64,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataBase\AppSettings.cs" />
     <Compile Include="DataBase\Class1.cs" />
+    <Compile Include="DataBase\DatabaseInitializer.cs" />
     <Compile Include="DataLoaders\EveLoader.cs" />
     <Compile Include="DataLoaders\GroundMMg.cs" />
     <Compile Include="DataLoaders\ItemLoader.cs" />
@@ -229,6 +230,9 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <None Include="App.config" />
+    <None Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

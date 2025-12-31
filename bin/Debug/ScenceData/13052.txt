@@ -1,7 +1,7 @@
 SceneID  :------->  13052
-SceneNameLength  :------->  13
+SceneNameLength  :------->  11
 SceneName  :------->  System.Byte[]
-UnknownByte1  :------->  4
+UnknownByte1  :------->  6
 UnknownByte2  :------->  0
 SoundMediaNameLength  :------->  7
 SoundMediaName  :------->  System.Byte[]

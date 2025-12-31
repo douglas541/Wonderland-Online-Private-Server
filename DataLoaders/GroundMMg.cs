@@ -57,11 +57,18 @@ namespace PServer_v2.DataLoaders
     {
         private List<GroundNodeInfo> m_NodeList;
         private readonly object m_Lock;
+        private string groundMMGPath;
 
         public GroundMMGDataFile()
         {
             m_NodeList = new List<GroundNodeInfo>();
             m_Lock = new object();
+            groundMMGPath = null;
+        }
+        
+        public void SetGroundMMGPath(string path)
+        {
+            groundMMGPath = path;
         }
 
         protected T ReadNode<T>(Stream fs)
@@ -80,7 +87,34 @@ namespace PServer_v2.DataLoaders
         {
             try
             {
-                using (Stream fs = new FileStream(@"E:\\Wonderland Online-20210429T233513Z-001\\Wonderland Online\\data\\Ground.MMG", FileMode.Open, FileAccess.Read))
+                string filePath = groundMMGPath;
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    string[] possiblePaths = new string[]
+                    {
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "pServer", "data", "Ground.MMG"),
+                        Path.Combine(Directory.GetCurrentDirectory(), "pServer", "data", "Ground.MMG"),
+                        @"E:\Wonderland Online-20210429T233513Z-001\Wonderland Online\data\Ground.MMG",
+                        @"C:\Program Files (x86)\Wonderland Online\data\Ground.MMG",
+                        @"C:\Program Files\Wonderland Online\data\Ground.MMG"
+                    };
+                    
+                    foreach (string path in possiblePaths)
+                    {
+                        if (File.Exists(path))
+                        {
+                            filePath = path;
+                            break;
+                        }
+                    }
+                }
+                
+                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+                {
+                    return false;
+                }
+                
+                using (Stream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                 {
                     long FileLen = fs.Length;
                     fs.Position = FileLen - 2;
@@ -156,7 +190,34 @@ namespace PServer_v2.DataLoaders
 
             try
             {
-                using (Stream fs = new FileStream(@"C:\\Program Files\\Wonderland Online\\data\\Ground.MMG", FileMode.Open, FileAccess.Read))
+                string filePath = groundMMGPath;
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    string[] possiblePaths = new string[]
+                    {
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "pServer", "data", "Ground.MMG"),
+                        Path.Combine(Directory.GetCurrentDirectory(), "pServer", "data", "Ground.MMG"),
+                        @"E:\Wonderland Online-20210429T233513Z-001\Wonderland Online\data\Ground.MMG",
+                        @"C:\Program Files (x86)\Wonderland Online\data\Ground.MMG",
+                        @"C:\Program Files\Wonderland Online\data\Ground.MMG"
+                    };
+                    
+                    foreach (string path in possiblePaths)
+                    {
+                        if (File.Exists(path))
+                        {
+                            filePath = path;
+                            break;
+                        }
+                    }
+                }
+                
+                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+                {
+                    throw new FileNotFoundException("Ground.MMG não encontrado");
+                }
+                
+                using (Stream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                 {
                     fs.Position = GroundNode.Offset;
 

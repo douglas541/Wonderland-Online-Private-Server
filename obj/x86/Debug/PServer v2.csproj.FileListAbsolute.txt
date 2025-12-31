@@ -58,3 +58,23 @@ C:\Users\Helliuminati\Downloads\Working_Source-20221215T204723Z-001\Working_Sour
 C:\Users\Helliuminati\Downloads\Working_Source-20221215T204723Z-001\Working_Source\obj\x86\Debug\PServer v2.csproj.CopyComplete
 C:\Users\Helliuminati\Downloads\Working_Source-20221215T204723Z-001\Working_Source\obj\x86\Debug\PServer v2.exe
 C:\Users\Helliuminati\Downloads\Working_Source-20221215T204723Z-001\Working_Source\obj\x86\Debug\PServer v2.pdb
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\appsettings.json
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\PServer v2.exe.config
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\PServer v2.exe
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\PServer v2.pdb
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\EntityFramework.dll
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\System.Data.SQLite.dll
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\System.Data.SQLite.EF6.dll
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\System.Data.SQLite.Linq.dll
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\EntityFramework.xml
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\bin\Debug\System.Data.SQLite.xml
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\obj\x86\Debug\PServer v2.csproj.AssemblyReference.cache
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\obj\x86\Debug\PServer_v2.Form1.resources
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\obj\x86\Debug\PServer_v2.Properties.Resources.resources
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\obj\x86\Debug\PServer v2.csproj.GenerateResource.cache
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\obj\x86\Debug\PServer v2.csproj.CoreCompileInputs.cache
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\obj\x86\Debug\PServer v2.csproj.Up2Date
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\obj\x86\Debug\PServer v2.exe
+C:\Users\dougl\Documents\Dev\Projs\Wonderland-Online-Private-Server\obj\x86\Debug\PServer v2.pdb

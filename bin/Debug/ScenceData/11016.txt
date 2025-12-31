@@ -5,7 +5,7 @@ UnknownByte1  :------->  1
 UnknownByte2  :------->  0
 SoundMediaNameLength  :------->  7
 SoundMediaName  :------->  System.Byte[]
-Control  :------->  66
+Control  :------->  0
 UnknownByte3  :------->  0
 SceneEffects  :------->  0
 UnknownByte4  :------->  35
