@@ -11,5 +11,5 @@
 .env.test
 .env.production
 .env.local
-LogOutput.txt
+./LogOutput.txt
 bin/Debug/*
