@@ -11,4 +11,4 @@
 .env.test
 .env.production
 .env.local
-Debug/LogOutput.txt
+/Debug/LogOutput.txt
