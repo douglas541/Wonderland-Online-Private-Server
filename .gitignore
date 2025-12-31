@@ -12,4 +12,4 @@
 .env.production
 .env.local
 LogOutput.txt
-bin/Debug/LogOutput.txt
+bin/Debug/*
