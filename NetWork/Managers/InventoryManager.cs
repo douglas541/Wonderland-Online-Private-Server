@@ -250,7 +250,7 @@ namespace PServer_v2.NetWork.Managers
                 heading = "inv" + a;
                 string v = "";
                 if (i.ID > 0)
-                    v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
+                v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
                 d.Add(heading, v);
                 if (i.ID > 0) itemCount++;
             }
@@ -286,7 +286,7 @@ namespace PServer_v2.NetWork.Managers
                 heading = "inv" + a;
                 string v = "";
                 if (i.ID > 0)
-                    v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
+                v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
                 d.Add(heading, v);
             }
             for (int n = 1; n < 7; n++)
@@ -295,7 +295,7 @@ namespace PServer_v2.NetWork.Managers
                 heading = "wear" + n;
                 string v = "";
                 if (i.ID > 0)
-                    v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
+                v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
                 d.Add(heading, v);
             }
             return globals.WloDatabase.Update("inventory", d, where);
