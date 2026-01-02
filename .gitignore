@@ -1,6 +1,7 @@
 .vs
 .cursor
 .vscode
+.github
 .idea
 .env
 .env.local

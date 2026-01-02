@@ -33,11 +33,16 @@ namespace PServer_v2.NetWork.DataExt
             {
                 if (y.Length > 0 && y != "none")
                 {
-                    string[] f = y.Split(' ');
-                    cFriend tmp = new cFriend(uint.Parse(f[0]), f[1], byte.Parse(f[2]), byte.Parse(f[3]),
-                        byte.Parse(f[4]), byte.Parse(f[5]), byte.Parse(f[6]), byte.Parse(f[7]), uint.Parse(f[8]),
-                        uint.Parse(f[9]), f[10]);
-                    myFriends.Add(tmp);
+                    string[] f = y.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (f.Length >= 10)
+                    {
+                        string nick = "";
+                        if (f.Length > 10) nick = f[10];
+                        cFriend tmp = new cFriend(uint.Parse(f[0]), f[1], byte.Parse(f[2]), byte.Parse(f[3]),
+                            byte.Parse(f[4]), byte.Parse(f[5]), byte.Parse(f[6]), byte.Parse(f[7]), uint.Parse(f[8]),
+                            uint.Parse(f[9]), nick);
+                        myFriends.Add(tmp);
+                    }
                 }
             }
             return true; ;

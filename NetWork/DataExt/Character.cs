@@ -60,6 +60,8 @@ namespace PServer_v2.NetWork.DataExt
         public TeamManager Party;
         public cInventory inv;
         public cInventory storage;
+        // true while props keeper UI is expected to be open (debug aid)
+        public bool propsKeeperOpen;
         public cEquipManager eq;
         public TransportationManager vechile;
         public TentManager myTent;
@@ -222,6 +224,12 @@ namespace PServer_v2.NetWork.DataExt
                 Friends.LoadFriends(r["friends"].ToString());
                 Mail.LoadMail((string)r["mail"]);
                 pets.Load();
+                byte calculatedLevel = stats.CalcLevelFromExp(stats.TotalExp, rebirth);
+                if (calculatedLevel != level)
+                {
+                    globals.Log($"Level mismatch: DB has {level}, calculated from exp {stats.TotalExp} is {calculatedLevel}. Updating level.\r\n");
+                    level = calculatedLevel;
+                }
                 stats.CalcBaseStats((byte)element, level, rebirth, (byte)job);
                 stats.CalcFullStats(eq.clothes);
                 if (globals.gUserManager.gmLvl(characterID) > 0)
@@ -284,6 +292,9 @@ namespace PServer_v2.NetWork.DataExt
             globals.ac26.Send_4(gold);//244, 68, 6, 0, 26, 4, 70, 78, 0, 0,  //gold
             storage.Send_Storage();
             globals.ac5.Send_3(this);
+            // Force sync all stats via Send_8_1 (similar to what happens when auto exp gain fires)
+            // This ensures client displays correct values (level, exp, maxHP, etc.) immediately after login
+            Send_8_1(false);
             cMap targetMap = globals.gMapManager.GetMapByID(map.MapID);
             if (targetMap != null)
             {
@@ -307,6 +318,9 @@ namespace PServer_v2.NetWork.DataExt
                 globals.gMapManager.mapList.Add(newMap);
                 newMap.LogintoMap(this);
             }
+            // Critical: exp-gain "fix" happens after the character is fully in-map and the client starts accepting core stat sync.
+            // We mimic that by forcing a core stat sync immediately after LogintoMap.
+            Send_8_1(true);
                 
         }
         public void ExpGain(uint ammt)

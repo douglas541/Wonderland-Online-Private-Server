@@ -42,7 +42,9 @@ namespace PServer_v2.NetWork.ACS
         public void Recv_1() //TODO interact with object
         {
             //this is just to keep it from locking
-           var npc = g.packet.character.map.GetNpc(g.packet.GetByte(2));
+            byte npcIndex = g.packet.GetByte(2);
+            
+           var npc = g.packet.character.map.GetNpc(npcIndex);
             if (npc == null)
                 Send_8(g.packet.character);
             else

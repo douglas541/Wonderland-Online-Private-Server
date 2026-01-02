@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -11,6 +12,7 @@ namespace PServer_v2.DataBase
         public EnvironmentConfig Environment { get; set; }
         public AdminConfig Admin { get; set; }
         public MobRespawnConfig MobRespawn { get; set; }
+        public Dictionary<string, ItemTypeProperties> ItemTypes { get; set; }
 
         public static AppSettings Load()
         {
@@ -58,7 +60,8 @@ namespace PServer_v2.DataBase
                 {
                     MinSeconds = 5,
                     MaxSeconds = 10
-                }
+                },
+                ItemTypes = new Dictionary<string, ItemTypeProperties>()
             };
         }
 
@@ -93,7 +96,8 @@ namespace PServer_v2.DataBase
                 Database = new DatabaseConfig(),
                 Environment = new EnvironmentConfig(),
                 Admin = new AdminConfig(),
-                MobRespawn = new MobRespawnConfig()
+                MobRespawn = new MobRespawnConfig(),
+                ItemTypes = new Dictionary<string, ItemTypeProperties>()
             };
 
             string dataDir = GetDataDirectory();
@@ -115,8 +119,79 @@ namespace PServer_v2.DataBase
             settings.Admin.GMLevel = ExtractInt(json, "GMLevel", 255);
             settings.MobRespawn.MinSeconds = ExtractInt(json, "MobRespawnMinSeconds", 5);
             settings.MobRespawn.MaxSeconds = ExtractInt(json, "MobRespawnMaxSeconds", 10);
+            
+            settings.ItemTypes = ExtractItemTypes(json);
 
             return settings;
+        }
+
+        private static Dictionary<string, ItemTypeProperties> ExtractItemTypes(string json)
+        {
+            var itemTypes = new Dictionary<string, ItemTypeProperties>();
+            
+            int itemTypesStart = json.IndexOf("\"ItemTypes\"");
+            if (itemTypesStart == -1) return itemTypes;
+            
+            int braceStart = json.IndexOf('{', itemTypesStart);
+            if (braceStart == -1) return itemTypes;
+            
+            int depth = 0;
+            int startPos = braceStart;
+            bool inItemTypes = false;
+            
+            for (int i = braceStart; i < json.Length; i++)
+            {
+                if (json[i] == '{')
+                {
+                    if (depth == 0 && !inItemTypes)
+                    {
+                        inItemTypes = true;
+                        startPos = i + 1;
+                    }
+                    depth++;
+                }
+                else if (json[i] == '}')
+                {
+                    depth--;
+                    if (depth == 0 && inItemTypes)
+                    {
+                        string itemTypesSection = json.Substring(startPos, i - startPos);
+                        ExtractItemTypesFromSection(itemTypesSection, itemTypes);
+                        break;
+                    }
+                }
+            }
+            
+            return itemTypes;
+        }
+
+        private static void ExtractItemTypesFromSection(string section, Dictionary<string, ItemTypeProperties> itemTypes)
+        {
+            var itemPattern = "\"(\\d+)\"\\s*:\\s*\\{([^}]+)\\}";
+            var itemMatches = Regex.Matches(section, itemPattern);
+            
+            foreach (Match itemMatch in itemMatches)
+            {
+                string itemId = itemMatch.Groups[1].Value;
+                string itemProps = itemMatch.Groups[2].Value;
+                
+                string name = ExtractString(itemProps, "name", "");
+                bool stackable = ExtractBool(itemProps, "stackable", false);
+                bool dropable = ExtractBool(itemProps, "dropable", false);
+                bool tradeable = ExtractBool(itemProps, "tradeable", false);
+                string wearSlot = ExtractString(itemProps, "wearSlot", "none");
+                string weaponType = ExtractString(itemProps, "weaponType", "none");
+                
+                itemTypes[itemId] = new ItemTypeProperties
+                {
+                    Name = name,
+                    Stackable = stackable,
+                    Dropable = dropable,
+                    Tradeable = tradeable,
+                    WearSlot = wearSlot,
+                    WeaponType = weaponType
+                };
+            }
         }
 
         private static string ExtractString(string json, string key, string defaultValue)
@@ -172,6 +247,16 @@ namespace PServer_v2.DataBase
     {
         public int MinSeconds { get; set; }
         public int MaxSeconds { get; set; }
+    }
+
+    public class ItemTypeProperties
+    {
+        public string Name { get; set; }
+        public bool Stackable { get; set; }
+        public bool Dropable { get; set; }
+        public bool Tradeable { get; set; }
+        public string WearSlot { get; set; }
+        public string WeaponType { get; set; }
     }
 }
 

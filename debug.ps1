@@ -5,15 +5,6 @@ $exePath = Join-Path $projectRoot "bin\Debug\PServer v2.exe"
 $logPath = Join-Path $projectRoot "bin\Debug\LogOutput.txt"
 $msbuildPath = "${env:ProgramFiles}\JetBrains\JetBrains Rider 2025.3.0.3\tools\MSBuild\Current\Bin\amd64\MSBuild.exe"
 
-function Get-LatestSourceWriteTime {
-    $includes = @("*.cs", "*.resx", "*.config", "*.json", "*.settings", "*.csproj")
-    $files = Get-ChildItem -Path $projectRoot -Recurse -File -Include $includes -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch "\\(bin|obj|packages)\\" }
-
-    if (-not $files) { return $null }
-    return ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime
-}
-
 function Write-LogHeader {
     Clear-Host
     Write-Host "========================================" -ForegroundColor Cyan
@@ -52,34 +43,26 @@ function Build-Project {
     }
     
     if (-not $msbuildPath) {
-        Write-Host "AVISO: MSBuild não encontrado. Pulando compilação." -ForegroundColor Yellow
+        Write-Host "ERRO: MSBuild não encontrado. Instale o Visual Studio Build Tools ou ajuste o caminho no script." -ForegroundColor Red
         return $false
     }
     
-    $needsBuild = -not (Test-Path $exePath)
-    if (-not $needsBuild -and (Test-Path $exePath)) {
-        $exeTime = (Get-Item $exePath).LastWriteTime
-        $latestSourceTime = Get-LatestSourceWriteTime
-        if ($latestSourceTime -and $latestSourceTime -gt $exeTime) {
-            $needsBuild = $true
+    Write-Host "Compilando projeto..." -ForegroundColor Yellow
+    Push-Location $projectRoot
+    try {
+        & $msbuildPath $csprojPath /t:Build /property:Configuration=Debug /property:Platform=x86 /nologo /verbosity:minimal
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Compilação concluída!" -ForegroundColor Green
+            return $true
+        }
+        else {
+            Write-Host "ERRO: Falha na compilação!" -ForegroundColor Red
+            return $false
         }
     }
-
-    if ($needsBuild) {
-        Write-Host "Compilando projeto..." -ForegroundColor Yellow
-        Push-Location $projectRoot
-        try {
-            & $msbuildPath $csprojPath /t:Build /property:Configuration=Debug /property:Platform=x86 /nologo /verbosity:minimal | Out-Null
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "Compilação concluída!" -ForegroundColor Green
-                return $true
-            }
-        }
-        finally {
-            Pop-Location
-        }
+    finally {
+        Pop-Location
     }
-    return $true
 }
 
 function Start-Application {
@@ -144,11 +127,13 @@ function Monitor-LogFile {
 
 Write-LogHeader
 
-if (-not (Test-Path $exePath)) {
-    Write-Host "Executável não encontrado. Compilando..." -ForegroundColor Yellow
-    Build-Project | Out-Null
+if (-not (Build-Project)) {
     Write-Host ""
+    Read-Host "Pressione Enter para sair"
+    exit 1
 }
+
+Write-Host ""
 
 $process = $null
 $lastPosition = 0

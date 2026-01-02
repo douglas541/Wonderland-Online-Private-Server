@@ -49,39 +49,25 @@ if (-not (Test-Path $msbuildPath)) {
     }
 }
 
-$needsBuild = -not (Test-Path $exePath)
-if (-not $needsBuild) {
-    $exeTime = (Get-Item $exePath).LastWriteTime
-    $latestSourceTime = Get-LatestSourceWriteTime
-    if ($latestSourceTime -and $latestSourceTime -gt $exeTime) {
-        $needsBuild = $true
-    }
-}
+Write-Host "Compilando o projeto..." -ForegroundColor Yellow
+Write-Host ""
 
-if ($needsBuild) {
-    Write-Host "Compilando o projeto..." -ForegroundColor Yellow
-    Write-Host ""
+Push-Location $projectRoot
+try {
+    & $msbuildPath $csprojPath /t:Build /property:Configuration=Debug /property:Platform=x86 /nologo /verbosity:minimal
     
-    Push-Location $projectRoot
-    try {
-        & $msbuildPath $csprojPath /t:Build /property:Configuration=Debug /property:Platform=x86 /nologo /verbosity:minimal
-        
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host ""
-            Write-Host "ERRO: Falha na compilação!" -ForegroundColor Red
-            Read-Host "Pressione Enter para sair"
-            exit 1
-        }
-        
+    if ($LASTEXITCODE -ne 0) {
         Write-Host ""
-        Write-Host "Compilação concluída com sucesso!" -ForegroundColor Green
+        Write-Host "ERRO: Falha na compilação!" -ForegroundColor Red
+        Read-Host "Pressione Enter para sair"
+        exit 1
     }
-    finally {
-        Pop-Location
-    }
+    
+    Write-Host ""
+    Write-Host "Compilação concluída com sucesso!" -ForegroundColor Green
 }
-else {
-    Write-Host "Executável já está atualizado. Pulando compilação." -ForegroundColor Green
+finally {
+    Pop-Location
 }
 
 Write-Host ""

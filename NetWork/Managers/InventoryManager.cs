@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data;
+using System.IO;
 using PServer_v2.NetWork.DataExt;
 using PServer_v2.NetWork.ACS;
 
@@ -14,6 +15,17 @@ namespace PServer_v2.NetWork.Managers
         cGlobals globals;
         public cInvItem[][] mainInv = new cInvItem[11][];
         bool storage;
+        private void AppendDebugLog(string message)
+        {
+            try
+            {
+                string logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".github");
+                Directory.CreateDirectory(logDir);
+                string logPath = Path.Combine(logDir, "debug_logs.txt");
+                File.AppendAllText(logPath, message + Environment.NewLine);
+            }
+            catch { }
+        }
         public cInventory(cGlobals d, cCharacter y, bool st)
         {
             own = y;
@@ -102,7 +114,6 @@ namespace PServer_v2.NetWork.Managers
         public void DropItemMap(byte src, byte ammt)
         {
             var srcCell = globals.NumbertoMatrix(src);
-            //check to see if I even have that ammt in my inventory
             if ((src > 0) && (src < 51))
             {
                 if (mainInv[srcCell[0]][srcCell[1]].ammt >= ammt)
@@ -110,13 +121,14 @@ namespace PServer_v2.NetWork.Managers
                     cInvItem i = new cInvItem(globals);
                     i.CopyFrom(mainInv[srcCell[0]][srcCell[1]]);
                     i.ammt = ammt;
-                    //do a drop item on map
-                    if (own.map.DropItem(i, own))
+                    
+                    if (i.itemtype != null && i.itemtype.dropable)
                     {
-                        // if (i.itemtype.ItemType == 39)
-                        //own.vechile.Rem(src);
+                        if (own.map != null)
+                        {
+                            own.map.DropItem(i, own);
+                        }
                         RemoveInv(src, i.ammt);
-
                     }
                 }
             }
@@ -134,12 +146,12 @@ namespace PServer_v2.NetWork.Managers
             cGroundItem gi = own.map.GetGroundItem(itemIndex, own, false);
             if (gi == null)
                 return;
-            if (gi.id > 0)
+            if (gi.id > 0 && gi.ammt > 0)
             {
                 cInvItem i = new cInvItem(globals);
                 i.CopyFrom(gi);
-                byte ammt = i.ammt;
-                if (PlaceItem(i, i.ammt))
+                byte ammt = gi.ammt;
+                if (PlaceItem(i, ammt))
                 {
                     own.map.GetGroundItem(itemIndex, own, true);
                     i.ammt = ammt;
@@ -153,36 +165,50 @@ namespace PServer_v2.NetWork.Managers
         #region DataBase tools
         public bool Load(UInt32 id)
         {
+            AppendDebugLog($"Load start id={id} storage={storage}");
             try
             {
-                if(storage)
-                { 
+                if (storage)
                     globals.Log("loading storage");
-                    DataRow r = GetDBData(id,true);
-                        if (r != null)
+                DataRow r = GetDBData(id, storage);
+                if (r == null)
                 {
-                    string heading = "";
-                    for (int a = 1; a < 51; a++)
-                    {
-                        heading = "inv" + a;
-                        string istr = (string)r[heading]; istr = istr.Trim();
-                        if (istr.Length > 0)
-                        
-                        {
-                            var n = globals.NumbertoMatrix(a);
-                            string[] words = istr.Split(' ');
-                            int ct = words.Length;
-                            if (ct > 0) mainInv[n[0]][n[1]].ID = UInt16.Parse(words[0]);
-                            if (ct > 1) mainInv[n[0]][n[1]].ammt = byte.Parse(words[1]);
-                            if (ct > 2) mainInv[n[0]][n[1]].damage = byte.Parse(words[2]);
-                            if (ct > 3) mainInv[n[0]][n[1]].parent = byte.Parse(words[3]);
-                            if (mainInv[n[0]][n[1]].ID > 0)
-                                mainInv[n[0]][n[1]].itemtype = globals.gItemManager.GetItemByID(mainInv[n[0]][n[1]].ID);
-                            if (mainInv[n[0]][n[1]].itemtype.Veichle)
-                                own.vechile.Add(mainInv[n[0]][n[1]].ID, a);
-                        }
+                    AppendDebugLog("GetDBData returned null");
+                    return false;
+                }
 
+                AppendDebugLog($"Loaded row: {r.Table.TableName}");
+                string heading = "";
+                int itemCount = 0;
+                for (int a = 1; a < 51; a++)
+                {
+                    heading = "inv" + a;
+                    object fieldValue = r[heading];
+                    string istr = fieldValue != null && fieldValue != DBNull.Value ? fieldValue.ToString() : "";
+                    istr = istr.Trim();
+                    if (istr.Length > 0 && istr != "0 0 0 0")
+                    {
+                        var n = globals.NumbertoMatrix(a);
+                        string[] words = istr.Split(' ');
+                        int ct = words.Length;
+                        if (ct > 0) mainInv[n[0]][n[1]].ID = UInt16.Parse(words[0]);
+                        if (ct > 1) mainInv[n[0]][n[1]].ammt = byte.Parse(words[1]);
+                        if (ct > 2) mainInv[n[0]][n[1]].damage = byte.Parse(words[2]);
+                        if (ct > 3) mainInv[n[0]][n[1]].parent = byte.Parse(words[3]);
+                        if (mainInv[n[0]][n[1]].ID > 0)
+                        {
+                            mainInv[n[0]][n[1]].itemtype = globals.gItemManager.GetItemByID(mainInv[n[0]][n[1]].ID);
+                            itemCount++;
+                        }
+                        if (mainInv[n[0]][n[1]].itemtype != null && mainInv[n[0]][n[1]].itemtype.Veichle)
+                            own.vechile.Add(mainInv[n[0]][n[1]].ID, a);
                     }
+                }
+
+                AppendDebugLog($"Inv count: {itemCount}");
+                if (!storage)
+                {
+                    int wearCount = 0;
                     for (int n = 1; n < 7; n++)
                     {
                         heading = "wear" + n;
@@ -195,61 +221,18 @@ namespace PServer_v2.NetWork.Managers
                             if (ct > 1) own.eq.clothes[n].ammt = byte.Parse(words[1]);
                             if (ct > 2) own.eq.clothes[n].damage = byte.Parse(words[2]);
                             if (ct > 3) own.eq.clothes[n].parent = byte.Parse(words[3]);
+                            wearCount++;
                         }
-
                     }
-
-                    return true;
+                    AppendDebugLog($"Wear count: {wearCount}");
                 }
-                }
-                else
-                {
-                    DataRow r = GetDBData(id,false);
-                if (r != null)
-                {
-                    string heading = "";
-                    for (int a = 1; a < 51; a++)
-                    {
-                        heading = "inv" + a;
-                        string istr = (string)r[heading]; istr = istr.Trim();
-                        if (istr.Length > 0)
-                        
-                        {
-                            var n = globals.NumbertoMatrix(a);
-                            string[] words = istr.Split(' ');
-                            int ct = words.Length;
-                            if (ct > 0) mainInv[n[0]][n[1]].ID = UInt16.Parse(words[0]);
-                            if (ct > 1) mainInv[n[0]][n[1]].ammt = byte.Parse(words[1]);
-                            if (ct > 2) mainInv[n[0]][n[1]].damage = byte.Parse(words[2]);
-                            if (ct > 3) mainInv[n[0]][n[1]].parent = byte.Parse(words[3]);
-                            if (mainInv[n[0]][n[1]].ID > 0)
-                                mainInv[n[0]][n[1]].itemtype = globals.gItemManager.GetItemByID(mainInv[n[0]][n[1]].ID);
-                            if (mainInv[n[0]][n[1]].itemtype.Veichle)
-                                own.vechile.Add(mainInv[n[0]][n[1]].ID, a);
-                        }
 
-                    }
-                    for (int n = 1; n < 7; n++)
-                    {
-                        heading = "wear" + n;
-                        string istr = (string)r[heading]; istr = istr.Trim();
-                        if (istr.Length > 0)
-                        {
-                            string[] words = istr.Split(' ');
-                            int ct = words.Length;
-                            if (ct > 0) own.eq.clothes[n].ID = UInt16.Parse(words[0]);
-                            if (ct > 1) own.eq.clothes[n].ammt = byte.Parse(words[1]);
-                            if (ct > 2) own.eq.clothes[n].damage = byte.Parse(words[2]);
-                            if (ct > 3) own.eq.clothes[n].parent = byte.Parse(words[3]);
-                        }
-
-                    }
-
-                    return true;
-                }
-                }
+                return true;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                AppendDebugLog($"Load exception: {ex.Message}");
+            }
             return false;
         }
         public bool Save(UInt32 id)
@@ -259,17 +242,37 @@ namespace PServer_v2.NetWork.Managers
                 Dictionary<string, string> d = new Dictionary<string, string>();
             string where = "invID = " + id;
             string heading = "";
+            int itemCount = 0;
             for (int a = 1; a < 51; a++)
             {
                 var n = globals.NumbertoMatrix(a);
                 cInvItem i = mainInv[n[0]][n[1]]; //i.Clear();
                 heading = "inv" + a;
                 string v = "";
-                v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
+                if (i.ID > 0)
+                    v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
                 d.Add(heading, v);
+                if (i.ID > 0) itemCount++;
             }
             
-            return globals.WloDatabase.Update("Storage", d, where);
+            
+            
+            // Use INSERT OR REPLACE to ensure the row is created if it doesn't exist
+            string columns = "invID";
+            string values = id.ToString();
+            foreach (KeyValuePair<string, string> kvp in d)
+            {
+                columns += ", " + kvp.Key;
+                values += ", '" + kvp.Value + "'";
+            }
+            
+            string insertQuery = "INSERT OR REPLACE INTO Storage (" + columns + ") VALUES (" + values + ");";
+            
+            int rowsAffected = globals.WloDatabase.ExecuteNonQuery(insertQuery);
+            
+            bool result = rowsAffected > 0;
+            
+            return result;
             }
             else
             {
@@ -282,7 +285,8 @@ namespace PServer_v2.NetWork.Managers
                 cInvItem i = mainInv[n[0]][n[1]]; //i.Clear();
                 heading = "inv" + a;
                 string v = "";
-                v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
+                if (i.ID > 0)
+                    v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
                 d.Add(heading, v);
             }
             for (int n = 1; n < 7; n++)
@@ -290,7 +294,8 @@ namespace PServer_v2.NetWork.Managers
                 cInvItem i = own.eq.clothes[n]; //i.Clear();
                 heading = "wear" + n;
                 string v = "";
-                v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
+                if (i.ID > 0)
+                    v += i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
                 d.Add(heading, v);
             }
             return globals.WloDatabase.Update("inventory", d, where);
@@ -354,7 +359,10 @@ namespace PServer_v2.NetWork.Managers
                         cInvItem i = mainInv[n[0]][n[1]];
                         //query += ", inv" + (n + 1);
                         //string v = "";
-                        query += ",'" + i.ID + " " + i.ammt + " " + i.damage + " " + i.parent + "'";
+                        string v = "";
+                        if (i.ID > 0)
+                            v = i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
+                        query += ",'" + v + "'";
                         //d.Add(heading, v);
                     }
                     for (int n = 1; n < 7; n++)
@@ -362,7 +370,10 @@ namespace PServer_v2.NetWork.Managers
                         cInvItem i = own.eq.clothes[n];
                         //query += ", wear" + (n + 1);
                         //string v = "";
-                        query += ",'" + i.ID + " " + i.ammt + " " + i.damage + " " + i.parent + "'";
+                        string v = "";
+                        if (i.ID > 0)
+                            v = i.ID + " " + i.ammt + " " + i.damage + " " + i.parent;
+                        query += ",'" + v + "'";
                         //d.Add(heading, v);
                     }
 
@@ -390,19 +401,18 @@ namespace PServer_v2.NetWork.Managers
                 {
                     try
                     {
-                        
-                    DataTable table;
-                    String query = "select * from Storage where invID = " + id + "";
-                    table = globals.WloDatabase.GetDataTable(query, true);
-                    if (table.Rows.Count > 0)
-                        bRetVal = table.Rows[0];
+                        DataTable table;
+                        String query = "select * from Storage where invID = " + id + "";
+                        table = globals.WloDatabase.GetDataTable(query, true);
+                        if (table.Rows.Count > 0)
+                            bRetVal = table.Rows[0];
                     }
                     catch (Exception fail)
                 {
                     globals.Log("failed.\r\n");
                     String error = "The following error has occurred:\n\n";
                     error += fail.Message.ToString() + "\n\n";
-                    System.Windows.Forms.MessageBox.Show(error);
+                    
                 }
                 }
                 else
@@ -729,20 +739,23 @@ namespace PServer_v2.NetWork.Managers
         public bool putIteminStorage(cInvItem givenItem)
         {
             
-            foreach(var itemArray in own.storage.mainInv)
+            // #endregion
+            
+            foreach(var itemArray in mainInv)
             {
                 foreach(var item in itemArray)
                 {
                     if(item.ID == givenItem.ID)
                     {
                         //check if stackable
-                        if (item.itemtype.Stackable)
+                        if (item.itemtype != null && item.itemtype.Stackable)
                         {
                             //check if ammount is good
                             if( item.ammt + givenItem.ammt <= 50)
                             {
                                 item.ammt += givenItem.ammt;
-                                globals.Log("Done1");
+                                
+                                // #endregion
                                 return true;
                             }
                             else
@@ -750,15 +763,17 @@ namespace PServer_v2.NetWork.Managers
                                 int needed = 50 - item.ammt;
                                 int difference = givenItem.ammt - needed;
                                 item.ammt = (byte)50;
-                                PlaceItem(item, (byte)difference);
-                                globals.Log("Done2");
+                                PlaceItem(givenItem, (byte)difference);
+                                
+                                // #endregion
                                 return true;
                             }
                         }
                     }
                 }
             }
-            globals.Log("Done3");
+            
+            // #endregion
             PlaceItem(givenItem,givenItem.ammt);
             return true;
         }
@@ -776,11 +791,12 @@ namespace PServer_v2.NetWork.Managers
         {
             byte[] data = own.storage.Get_23_5();
             cSendPacket p = new cSendPacket(globals);
-            p.Header(30,1);
+            p.Header(30, 1);
             p.AddArray(data);
             p.SetSize();
             p.character = own;
             p.Send();
         }
+
     }
 }

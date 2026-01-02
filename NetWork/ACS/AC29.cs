@@ -29,13 +29,17 @@ namespace PServer_v2.NetWork.ACS
         }
         public void Send_6()//props keeper
         {
+            
             cSendPacket d = new cSendPacket(g);
             d.Header(29);
             d.AddByte(6);
             d.SetSize();
             d.character = g.packet.character;
             d.Send();
+            g.packet.character.propsKeeperOpen = true;
             g.ac20.Send_9();
+            
+            g.packet.character.storage.Send_Storage();
         }
     }
 }

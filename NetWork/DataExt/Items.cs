@@ -5,6 +5,7 @@ using System.Text;
 using PServer_v2.NetWork.Managers;
 using PServer_v2.Other;
 using PServer_v2.NetWork;
+using PServer_v2.DataBase;
 
 namespace PServer_v2.NetWork.DataExt
 {
@@ -79,11 +80,86 @@ namespace PServer_v2.NetWork.DataExt
             }
         }
 
-        public bool Tool { get { if (ItemType == 29)return true; return false; } }
-        public bool Fuel { get { if (ItemType == 29)return true; return false; } }
-        public bool Food { get { if (ItemType == 29)return true; return false; } }
-        public bool Veichle { get { if (ItemType == 39)return true; return false; } }
-        public bool WarpTool { get { if (ItemType == 29)return true; return false; } }
+        public bool Tool { get { var settings = AppSettings.Load(); return ItemType == GetItemTypeId(settings, "29"); } }
+        public bool Fuel { get { var settings = AppSettings.Load(); return ItemType == GetItemTypeId(settings, "29"); } }
+        public bool Food { get { var settings = AppSettings.Load(); return ItemType == GetItemTypeId(settings, "29"); } }
+        public bool Veichle { get { var settings = AppSettings.Load(); return ItemType == GetItemTypeId(settings, "39"); } }
+        public bool WarpTool { get { var settings = AppSettings.Load(); return ItemType == GetItemTypeId(settings, "29"); } }
+
+        private static byte GetItemTypeId(AppSettings settings, string key)
+        {
+            if (settings.ItemTypes != null && settings.ItemTypes.ContainsKey(key))
+            {
+                if (byte.TryParse(key, out byte result))
+                {
+                    return result;
+                }
+            }
+            return 0;
+        }
+
+        private void ApplyItemTypeProperties()
+        {
+            var settings = AppSettings.Load();
+            string itemTypeKey = ItemType.ToString();
+
+            if (settings.ItemTypes != null && settings.ItemTypes.ContainsKey(itemTypeKey))
+            {
+                var props = settings.ItemTypes[itemTypeKey];
+                stackable = props.Stackable;
+                dropable = props.Dropable;
+                tradeable = props.Tradeable;
+                
+                wearAt = ParseWearSlot(props.WearSlot);
+                weaponType = ParseWeaponType(props.WeaponType);
+            }
+            else
+            {
+                stackable = false;
+                dropable = false;
+                tradeable = false;
+                wearAt = eWearSlot.none;
+                weaponType = eWeaponType.none;
+            }
+        }
+
+        private eWearSlot ParseWearSlot(string wearSlot)
+        {
+            if (string.IsNullOrEmpty(wearSlot))
+                return eWearSlot.none;
+
+            switch (wearSlot.ToLower())
+            {
+                case "head": return eWearSlot.head;
+                case "body": return eWearSlot.body;
+                case "hand": return eWearSlot.hand;
+                case "arm": return eWearSlot.arm;
+                case "feet": return eWearSlot.feet;
+                case "special": return eWearSlot.special;
+                default: return eWearSlot.none;
+            }
+        }
+
+        private eWeaponType ParseWeaponType(string weaponType)
+        {
+            if (string.IsNullOrEmpty(weaponType))
+                return eWeaponType.none;
+
+            switch (weaponType.ToLower())
+            {
+                case "sword": return eWeaponType.sword;
+                case "spear": return eWeaponType.spear;
+                case "noob": return eWeaponType.noob;
+                case "bow": return eWeaponType.bow;
+                case "wand": return eWeaponType.wand;
+                case "claw": return eWeaponType.claw;
+                case "axe": return eWeaponType.axe;
+                case "club": return eWeaponType.club;
+                case "fan": return eWeaponType.fan;
+                case "gun": return eWeaponType.gun;
+                default: return eWeaponType.none;
+            }
+        }
 
         private UInt16 getWord(byte[] data, int ptr)
         {
@@ -168,353 +244,7 @@ namespace PServer_v2.NetWork.DataExt
             UnknownDWord6 = dwordXor(getDWord(data, ptr)); ptr += 4;
 
             #region Stackable flag
-            switch (ItemType)
-            {
-                case 29: //noob items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = false;
-                        wearAt = eWearSlot.hand;
-                        weaponType = eWeaponType.noob;
-                    } break;
-                case 28: //sword items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.hand;
-                        weaponType = eWeaponType.sword;
-                    } break;
-                case 27: //spear items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.hand;
-                        weaponType = eWeaponType.spear;
-                    } break;
-                case 26: //bow items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.hand;
-                        weaponType = eWeaponType.bow;
-                    } break;
-                case 25: //wand items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.hand;
-                        weaponType = eWeaponType.wand;
-                    } break;
-                case 24: //claw items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.hand;
-                        weaponType = eWeaponType.claw;
-                    } break;
-                case 6: //axe items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.hand;
-                        weaponType = eWeaponType.axe;
-                    } break;
-                case 5: //club items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.hand;
-                        weaponType = eWeaponType.club;
-                    } break;
-                case 4: //fan items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.hand;
-                        weaponType = eWeaponType.fan;
-                    } break;
-                case 3: //gun items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.hand;
-                        weaponType = eWeaponType.gun;
-                    } break;
-                case 2: //clothes items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.body;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 1: //headwear items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.head;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 0: //arm items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.arm;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 15: //foot items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.feet;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 14: //special items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.special;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 13: //box items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 10: //pet items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = false;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 9: //quest items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = false;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 55: //food items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 54: //int combat items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 53: //misc stack items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 52: //msic non stack items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 51: //tent
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = false;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 50: //manufactured items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 49: //tool items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 48: //furniture items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 63: //plant drops
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 62: //eatable drops items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 61: //ore items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 60: //rock items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 59: //clay items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 58: //wood items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 57: //other drops items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 56: //oil drops items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 39: //vehicles items
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 41: //castle item
-                    {
-                        stackable = false;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 38: //card items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 37: //pack items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 43: //water items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 42: //gem items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 40: // bomb diamond
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 30: //unknown items
-                    {
-                        stackable = true;
-                        dropable = false;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-                case 32: //food items
-                    {
-                        stackable = true;
-                        dropable = true;
-                        tradeable = true;
-                        wearAt = eWearSlot.none;
-                        weaponType = eWeaponType.none;
-                    } break;
-            }
+            ApplyItemTypeProperties();
             #endregion
         }
 

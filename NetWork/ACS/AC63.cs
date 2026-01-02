@@ -107,7 +107,7 @@ namespace PServer_v2.NetWork.ACS
                 }
                 else
                 {
-                    g.gCharacterManager.GetDBByID(g.packet.character, u.userID);
+                    g.gCharacterManager.GetDBByID(g.packet.character, u.playerID);
                     NormalLog(g.packet.character);
                 }
             }

@@ -217,15 +217,7 @@ namespace PServer.Core.Network
             size -= 4;
             data[2] = (byte)size;
             data[3] = (byte)(size >> 8);
-            #region agent log
-            AgentLog.Write("J", "Core/Packet.cs:cSendPacket:SetSize", "set_size", new Dictionary<string, object?>
-            {
-                ["index"] = index,
-                ["size"] = size,
-                ["sizeLo"] = data[2],
-                ["sizeHi"] = data[3]
-            });
-            #endregion
+            
         }
         public int GetSize()
         {

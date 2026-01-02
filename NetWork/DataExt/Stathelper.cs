@@ -17,7 +17,7 @@ namespace PServer_v2.NetWork.DataExt
         UInt16 sMatk;
         UInt16 sMdef;
         UInt16 sSpd;
-        UInt16 sPts;
+        UInt16 sPts; public UInt16 Pts { get { return sPts; } set { sPts = value; } }
         UInt32 maxHP;
         UInt16 maxSP;
         UInt16 potential; public UInt16 Potential { get { return potential; } set { potential = value; } }
@@ -74,7 +74,7 @@ namespace PServer_v2.NetWork.DataExt
                 sWis = UInt16.Parse(words[3]);
                 sCon = UInt16.Parse(words[4]);
                 sAgi = UInt16.Parse(words[5]);
-                totalExp = UInt16.Parse(words[6]);
+                totalExp = UInt32.Parse(words[6]);
                 sPoints = UInt16.Parse(words[7]);
                 potential = UInt16.Parse(words[8]);
 
@@ -107,6 +107,24 @@ namespace PServer_v2.NetWork.DataExt
                     return (int)Math.Pow((Level + 1), (3.3)) + (int)Math.Pow((Level + 1 - 150), 4.9);
                 }
             }
+        }
+        public byte CalcLevelFromExp(uint totalExp, byte rebirth)
+        {
+            byte calculatedLevel = 1;
+            uint accumulatedExp = 0;
+            
+            for (byte lvl = 1; lvl < 255; lvl++)
+            {
+                int expForLevel = CalcMaxExp(rebirth, lvl - 1);
+                if (accumulatedExp + expForLevel > totalExp)
+                {
+                    break;
+                }
+                accumulatedExp += (uint)expForLevel;
+                calculatedLevel = lvl;
+            }
+            
+            return calculatedLevel;
         }
         public void CalcBaseStats(byte element, byte lvl, byte rebirth, byte job) //this function sets the stas according to pts
         {
@@ -144,6 +162,16 @@ namespace PServer_v2.NetWork.DataExt
                         maxSP = (UInt16)((lvl * 1) + (sWis * 6) + 94);
                     } break;
                 case 4: //wind
+                    {
+                        sAtk = (UInt16)((lvl * 2) + (sStr * 2));
+                        sDef = (UInt16)((lvl * 2) + (sCon * 2));
+                        sMatk = (UInt16)((lvl * 2) + (sInt * 2));
+                        sMdef = (UInt16)((lvl * 2) + (sWis * 2));
+                        sSpd = (UInt16)((lvl * 2) + (sAgi * 2));
+                        maxHP = (UInt32)((lvl * 1) + (sCon * 5) + 180);
+                        maxSP = (UInt16)((lvl * 1) + (sWis * 6) + 94);
+                    } break;
+                default: //fallback para elementos não definidos ou noElement
                     {
                         sAtk = (UInt16)((lvl * 2) + (sStr * 2));
                         sDef = (UInt16)((lvl * 2) + (sCon * 2));
@@ -195,7 +223,6 @@ namespace PServer_v2.NetWork.DataExt
         
         public void Send8_1(cInvItem[] clothes, bool levelup = false) //this function sets the stas according to pts
         {
-
             if (levelup)
             {
                 Send_1(36,totalExp,0);

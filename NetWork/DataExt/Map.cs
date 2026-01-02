@@ -394,6 +394,7 @@ namespace PServer_v2.NetWork.DataExt
             if (groundItem[itemIndex].id > 0)
             {
                 gItem.CopyFrom(groundItem[itemIndex]);
+                gItem.id = groundItem[itemIndex].id;
                 if (remove)
                 {
                     foreach (ItemsinMapEntries o in mapData.ItemAreas)
@@ -413,6 +414,7 @@ namespace PServer_v2.NetWork.DataExt
         void RemoveGroundItem(UInt16 itemIndex, cCharacter src)
         {
             groundItem[itemIndex].Clear();
+            groundItem[itemIndex].id = 0;
             foreach (cCharacter c in charList)
             {
                 if (c.characterID == src.characterID)
@@ -471,13 +473,27 @@ namespace PServer_v2.NetWork.DataExt
 
             if ((countItems + i.ammt) <= 255)
             {
+                Random rnd = new Random();
+                int minRadius = 5;
+                int maxRadius = 25;
+                
                 for (int ct = 0; ct < i.ammt; ct++)
                 {
                     cGroundItem gi = new cGroundItem(globals);
                     gi.CopyFrom(i);
-                    gi.x = (ushort)(src.x + new Random().Next(-10, 10));
-                    gi.y = (ushort)(src.y + new Random().Next(-10, 10));
+                    gi.id = i.ID;
+                    gi.ammt = 1;
+                    
+                    double angle = rnd.NextDouble() * 2 * Math.PI;
+                    double radius = minRadius + rnd.NextDouble() * (maxRadius - minRadius);
+                    
+                    int offsetX = (int)(Math.Cos(angle) * radius);
+                    int offsetY = (int)(Math.Sin(angle) * radius);
+                    
+                    gi.x = (ushort)Math.Max(0, Math.Min(ushort.MaxValue, src.x + offsetX));
+                    gi.y = (ushort)Math.Max(0, Math.Min(ushort.MaxValue, src.y + offsetY));
                     gi.lifetime = 1000;
+                    
                     int loc = GetEmptyGroundSlot;
                     if (loc != 0)
                     {

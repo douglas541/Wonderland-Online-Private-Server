@@ -155,6 +155,7 @@ namespace PServer_v2
                 string npcPath = System.IO.Path.Combine(dataDirectory, "Npc.Dat");
                 
                 globals.gItemManager.LoadItems(itemPath);
+                
                 globals.gSceneManager.LoadScenes(scenePath);
                 globals.gEveManager.LoadFile(evePath);
                 globals.gMapManager.SetListBox(listBox1);
@@ -768,6 +769,51 @@ namespace PServer_v2
                 System.IO.Directory.CreateDirectory(defaultPath);
             }
             return System.IO.Path.GetFullPath(defaultPath);
+        }
+
+        private void buttonUpdateItems_Click(object sender, EventArgs e)
+        {
+            DialogResult result = MessageBox.Show(
+                "Are you sure you want to update the items table? This will delete all existing values in the items table.",
+                "Confirm Update",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2
+            );
+
+            if (result == DialogResult.Yes)
+            {
+                try
+                {
+                    string dataDirectory = GetDataDirectory();
+                    string itemPath = System.IO.Path.Combine(dataDirectory, "Item.dat");
+
+                    if (!System.IO.File.Exists(itemPath))
+                    {
+                        MessageBox.Show("Item.dat file not found at: " + itemPath, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    globals.Log("Loading items from Item.dat...");
+                    bool loaded = globals.gItemManager.LoadItems(itemPath);
+
+                    if (!loaded)
+                    {
+                        MessageBox.Show("Failed to load items from Item.dat.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    DataBase.DatabaseInitializer initializer = new DataBase.DatabaseInitializer(globals);
+                    initializer.UpdateItems();
+
+                    MessageBox.Show("Items table updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error updating items table: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    globals.Log("Error updating items: " + ex.Message);
+                }
+            }
         }
     }
 }

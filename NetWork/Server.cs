@@ -130,6 +130,9 @@ namespace PServer_v2
                 p.a = p.data[0]; p.b = 0;
                 if (len > 1) p.b = p.data[1];
                 globals.Log(string.Join(",",p.data));
+
+                
+
                 sender.recvList.Enqueue(p);
                 at += len;
             }

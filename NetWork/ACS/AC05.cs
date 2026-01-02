@@ -70,16 +70,17 @@ namespace PServer_v2.NetWork.ACS
             cSendPacket p = new cSendPacket(g);
             p.Header(5, 3);
             p.AddByte((byte)character.element);
-            p.AddDWord(character.stats.CurHP);
+            p.AddWord((ushort)character.stats.CurHP);    // curHP como Word (2 bytes)
             p.AddWord(character.stats.CurSP);
-            p.AddWord(character.stats.Str); //base str
-            p.AddWord(character.stats.Con); //base con
-            p.AddWord(character.stats.Int); //base int
-            p.AddWord(character.stats.Wis); //base wis
-            p.AddWord(character.stats.Agi); //base agi
+            p.AddWord(character.stats.Str);      // base str
+            p.AddWord(character.stats.Con);      // base con
+            p.AddWord(character.stats.Int);      // base int
+            p.AddWord(character.stats.Wis);      // base wis
+            p.AddWord(character.stats.Agi);      // base agi
+            p.AddWord(character.stats.Pts);      // stat points disponíveis
             p.AddByte(character.level); //lvl
-            p.AddDWord((uint)character.stats.TotalExp); //exp ???
-            p.AddDWord((UInt32)(character.level - 1)); //lvl -1 ???
+            p.AddDWord((uint)character.stats.TotalExp); //exp
+            p.AddDWord((UInt32)(character.level - 1)); //lvl -1 (para calculo de exp)
             p.AddDWord(character.stats.MaxHP); //max hp
             p.AddWord(character.stats.MaxSP); //max sp
             

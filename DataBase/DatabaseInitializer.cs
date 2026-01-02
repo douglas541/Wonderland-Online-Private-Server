@@ -64,6 +64,11 @@ namespace PServer_v2.DataBase
                 CreateInventoryTable(db);
             }
             
+            if (created || !db.TableExists("Storage"))
+            {
+                CreateStorageTable(db);
+            }
+            
             return created;
         }
 
@@ -145,6 +150,97 @@ namespace PServer_v2.DataBase
             );";
             
             db.ExecuteNonQuery(sql);
+        }
+
+        private void CreateStorageTable(cDatabase db)
+        {
+            string sql = @"CREATE TABLE IF NOT EXISTS Storage (
+                invID INTEGER PRIMARY KEY";
+            
+            for (int a = 1; a < 51; a++)
+            {
+                sql += ", inv" + a + " TEXT DEFAULT ''";
+            }
+            
+            sql += ");";
+            
+            db.ExecuteNonQuery(sql);
+        }
+
+        private void CreateItemsTable(cDatabase db)
+        {
+            string sql = @"CREATE TABLE IF NOT EXISTS items (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                desc TEXT,
+                type INTEGER,
+                npcID INTEGER,
+                stats TEXT
+            );";
+            
+            db.ExecuteNonQuery(sql);
+        }
+
+        public void UpdateItems()
+        {
+            try
+            {
+                cDatabase db = new cDatabase(settings.Database.GameDatabasePath);
+                
+                if (!db.TableExists("items"))
+                {
+                    CreateItemsTable(db);
+                }
+                
+                if (globals.gItemManager == null || globals.gItemManager.itemList == null)
+                {
+                    globals.Log("ItemManager não está inicializado. Não é possível atualizar items.");
+                    return;
+                }
+
+                globals.Log("Atualizando tabela items com dados do Item.dat...");
+                
+                db.ExecuteNonQuery("DELETE FROM items;");
+                
+                int inserted = 0;
+                foreach (var item in globals.gItemManager.itemList)
+                {
+                    if (item.ItemID == 0) continue;
+                    
+                    string stats = "";
+                    if (item.statType != null && item.statVal != null && item.statType.Length > 0 && item.statVal.Length > 0)
+                    {
+                        stats = item.statType[0].ToString() + " " + item.statVal[0].ToString();
+                        if (item.statType.Length > 1 && item.statVal.Length > 1)
+                        {
+                            stats += " " + item.statType[1].ToString() + " " + item.statVal[1].ToString();
+                        }
+                    }
+                    
+                    string name = (item.Name ?? "").Replace("'", "''");
+                    string desc = (item.Desccription ?? "").Replace("'", "''");
+                    
+                    string sql = string.Format(
+                        "INSERT OR REPLACE INTO items (id, name, desc, type, npcID, stats) VALUES ({0}, '{1}', '{2}', {3}, {4}, '{5}');",
+                        item.ItemID,
+                        name,
+                        desc,
+                        item.ItemType,
+                        item.NpcID,
+                        stats
+                    );
+                    
+                    db.ExecuteNonQuery(sql);
+                    inserted++;
+                }
+                
+                globals.Log($"Tabela items atualizada com {inserted} itens.");
+            }
+            catch (Exception ex)
+            {
+                globals.Log("Erro ao atualizar items: " + ex.Message);
+                throw;
+            }
         }
 
         private void CreateAdminAccount()
@@ -229,6 +325,7 @@ namespace PServer_v2.DataBase
             }
             return uint.Parse(maxId) + 1;
         }
+
     }
 }
 

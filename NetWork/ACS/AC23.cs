@@ -76,9 +76,11 @@ namespace PServer_v2.NetWork.ACS
         }
         public void Recv_3() //player requests to drop item on map
         {
+            if (g.packet.data.Length < 4)
+                return;
+            
             byte srcCell = g.packet.data[2];
             byte ammt = g.packet.data[3];
-            byte uk = g.packet.data[4];
             cCharacter c = g.packet.character;
             c.inv.DropItemMap(srcCell, ammt);
         }

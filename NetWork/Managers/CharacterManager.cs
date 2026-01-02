@@ -121,7 +121,7 @@ namespace PServer_v2.NetWork.Managers
                         c.characterID + ",'"+ c.name + "','" + c.nickname +
                         "','" + c.password + "'," + c.map.MapID + "," + c.x + "," + c.y + "," +
                         (byte)c.body + "," + (byte)c.head + "," + c.color1 + "," + c.color2 + "," + c.gold + "," + c.level + "," +
-                        c.stats.TotalExp + "," + c.stats.CurHP + "," + c.stats.CurSP + "," + 0 + "," + 0 + "," + (byte)c.element + "," +
+                        c.stats.TotalExp + "," + c.stats.CurHP + "," + c.stats.MaxHP + "," + c.stats.CurSP + "," + c.stats.MaxSP + "," + (byte)c.element + "," +
                         GetFlagsString(c) + "," +
                         GetWarpString(c.lastMap) + "," +
                         GetWarpString(c.recordMap) + "," +
@@ -166,6 +166,8 @@ namespace PServer_v2.NetWork.Managers
         }
         public bool WriteCharacter(cCharacter c)
         {
+            c.stats.CalcBaseStats((byte)c.element, c.level, c.rebirth, (byte)c.job);
+            c.stats.CalcFullStats(c.eq.clothes);
             
             // ",   exp = 30, curHP = 1, maxHP = 2, curSP = 1, maxSP = 2, element = 1 WHERE rowid = 3;"
             bool retVal = false;
@@ -188,9 +190,9 @@ namespace PServer_v2.NetWork.Managers
                         "level = " + c.level + ", " +
                         "exp = " + c.stats.TotalExp + ", " +
                         "curHP = " + c.stats.CurHP + ", " +
-                        "maxHP = " + 0 + ", " +
+                        "maxHP = " + c.stats.MaxHP + ", " +
                         "curSP = " + c.stats.CurSP + ", " +
-                        "maxSP = " + 0 + ", " +
+                        "maxSP = " + c.stats.MaxSP + ", " +
 
                         "flags = " + GetFlagsString(c) + ", " +
                         "lastMap = " + GetWarpString(c.lastMap) + ", " +
