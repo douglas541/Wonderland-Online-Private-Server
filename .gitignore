@@ -13,3 +13,4 @@
 .env.production
 .env.local
 bin/*
+bin/Debug/LogOutput.txt

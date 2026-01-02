@@ -14,7 +14,6 @@ namespace PServer_v2.NetWork.ACS
         }
         public void SwitchBoard()
         {
-            g.packet = g.packet;
             switch (g.packet.b)
             {
                 case 1:
@@ -37,12 +36,14 @@ namespace PServer_v2.NetWork.ACS
         public void Recv_1()
         {
             byte emotebubble = g.packet.data[2];
-            //g.gMapManager.EmoteBubble(g.packet.character, emotebubble);
+            if (g.packet.character != null && g.packet.character.map != null)
+                g.packet.character.map.EmoteBubble(g.packet.character, emotebubble);
         }
         public void Recv_2()
         {
             byte emote = g.packet.data[2];
-            //g.gMapManager.Emote(g.packet.character, emote);
+            if (g.packet.character != null && g.packet.character.map != null)
+                g.packet.character.map.Emote(g.packet.character, emote);
         }
         public void Send_1(List<cCharacter> cList, cCharacter target, byte value)
         {

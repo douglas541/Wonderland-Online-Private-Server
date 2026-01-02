@@ -23,7 +23,6 @@ namespace PServer_v2
 
     public class cServer 
     {
-
         //public event PacketRecv PlayerDataRecv;
         private cListener listener = null;
         public Queue<cSendPacket> sendList;

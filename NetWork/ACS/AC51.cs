@@ -15,7 +15,6 @@ namespace PServer_v2.NetWork.ACS
         }
         public void SwitchBoard()
         {
-            g.packet = g.packet;
             switch (g.packet.b)
             {
                 case 1:
@@ -53,7 +52,7 @@ namespace PServer_v2.NetWork.ACS
             p.AddWord(amt);
             p.AddWord(0);
             p.SetSize();
-            p.character = t.character;
+            p.character = target;
             p.Send();
         }
 

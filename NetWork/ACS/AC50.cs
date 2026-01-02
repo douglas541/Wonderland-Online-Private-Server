@@ -35,6 +35,10 @@ namespace PServer_v2.NetWork.ACS
         public void Recv_1() //recieve an attack command
         {
             cCharacter c = g.packet.character;
+            if (c == null || c.battle == null || !c.inbattle || !c.battle.active || c.battle.delete || c.battle.IsEnding)
+            {
+                return;
+            }
             if (c.battle.active)
             {
                 BattleCMD tmp = new BattleCMD();

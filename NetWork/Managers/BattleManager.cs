@@ -47,6 +47,7 @@ namespace PServer_v2.NetWork.Managers
         public UInt16 Def;
         public UInt16 Mdef;
         public UInt16 Spd;
+        public UInt16 NormalAttackSkillId;
         public eFighterState State;
         public int Expearned;
         public byte x;
@@ -88,13 +89,14 @@ namespace PServer_v2.NetWork.Managers
             Spd = c.stats.sFullSpd;
             player = true;
             pet = false;
-            string.Copy(c.name);
+            name = c.name;
             lvl = c.level;
             element = c.element;
             rebirth = c.rebirth;
             job = c.job;
             clickID = 0;
             type = 2;
+            NormalAttackSkillId = 0;
             ready = false;
             actionDone = false;
 
@@ -108,11 +110,17 @@ namespace PServer_v2.NetWork.Managers
             maxsp = (ushort)c.SP;
             curhp = c.HP;
             cursp = (ushort)c.SP;
-            player = true;
+            player = false;
             pet = false;
-            string.Copy(c.NpcName);
+            name = c.NpcName;
             lvl = c.Level;
             element = (Element)c.Element;
+            Atk = (UInt16)((lvl * 2) + (c.STR * 2));
+            Def = (UInt16)((lvl * 2) + (c.CON * 2));
+            Matk = (UInt16)((lvl * 2) + (c.INT * 2));
+            Mdef = (UInt16)((lvl * 2) + (c.WIS * 2));
+            Spd = c.SPD > 0 ? c.SPD : (UInt16)((lvl * 2) + (c.AGI * 2));
+            NormalAttackSkillId = c.GeneralAttack3;
             clickID = 0;
             ready = false;
             actionDone = false;
@@ -132,7 +140,6 @@ namespace PServer_v2.NetWork.Managers
 
     public class cBattle
     {
-
         public enum eBattleType
         {
             pk = 2,
@@ -144,6 +151,8 @@ namespace PServer_v2.NetWork.Managers
         public bool active = false;
         public bool delete = false;
         public bool allready = false;
+        bool endBattlePending = false;
+        long endBattleAtMs = 0;
         int fightercount;
         TimeSpan chk;
         public TimeSpan rdEnd;
@@ -173,6 +182,15 @@ namespace PServer_v2.NetWork.Managers
         {
             get
             {
+                if (endBattlePending)
+                {
+                    if (chk == null || chk < globals.UpTime.Elapsed)
+                    {
+                        chk = globals.UpTime.Elapsed + new TimeSpan(0, 0, 1);
+                        return true;
+                    }
+                    return false;
+                }
                 if (rdStart ||TimeSpan.Compare(globals.UpTime.Elapsed, rdEnd) > 0 || allready)                    
                 {
                     if (chk == null || chk < globals.UpTime.Elapsed )
@@ -189,6 +207,16 @@ namespace PServer_v2.NetWork.Managers
         }
         public void Process()
         {
+            if (endBattlePending)
+            {
+                try
+                {
+                    if (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() >= endBattleAtMs)
+                        EndBattle();
+                }
+                catch { }
+                return;
+            }
             if (rdStart)
             {
                 StartRound();
@@ -197,13 +225,28 @@ namespace PServer_v2.NetWork.Managers
             {
                 Calculate();
             }
-            else if (!Checkforlife(true) && !Checkforlife(false))//check if sides have ppl alive/etc
+            else if (!Checkforlife(true) || !Checkforlife(false))//check if sides have ppl alive/etc
             {
-                EndBattle();
+                ScheduleEndBattle();
             }
             else
+            {
                 rdStart = true;
+            }
 
+        }
+
+        void ScheduleEndBattle()
+        {
+            if (endBattlePending) return;
+            endBattlePending = true;
+            try { endBattleAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 1000; } catch { endBattleAtMs = 0; }
+            // keep active=true so battle loop keeps ticking until EndBattle runs
+        }
+
+        public bool IsEnding
+        {
+            get { return endBattlePending; }
         }
         //Watching Battle
         bool Checkforlife(bool left)
@@ -442,6 +485,7 @@ namespace PServer_v2.NetWork.Managers
                 {
                     globals.gServer.Multipkt_Request(f.character);
                     f.actionDone = false;
+                    globals.ac52.Send_1(f.character);
                     foreach (cFighter ft in rightside.Where(z => !z.Watching))
                     {
                         globals.ac51.Send_1(ft, 25, (ushort)ft.curhp, f.character);
@@ -449,14 +493,24 @@ namespace PServer_v2.NetWork.Managers
                     }
                     foreach (cFighter lt in leftside.Where(z => !z.Watching))
                         globals.ac51.Send_1(lt, 25, (ushort)lt.curhp, f.character);
-                    globals.ac52.Send_1(f.character);
                     globals.gServer.SendCombinepkt(f.character);
                 }
                 else
                 {
                     BattleCMD h = new BattleCMD();
                     h.src = f;
-                    h.skill = globals.gskillManager.GetSkillbyID(10001);
+                    ushort skillId = f.NormalAttackSkillId != 0 ? f.NormalAttackSkillId : (ushort)10001;
+                    h.skill = globals.gskillManager.GetSkillbyID(skillId)
+                              ?? globals.gskillManager.GetSkillbyID(10001)
+                              ?? globals.gskillManager.GetSkillbyName("Monster Attack")
+                              ?? globals.gskillManager.GetSkillbyName("Hand Attack")
+                              ?? globals.gskillManager.GetSkillbyName("Normal attack")
+                              ?? globals.gskillManager.GetSkillbyName("Normal Attack");
+                    if (h.skill == null)
+                    {
+                        f.actionDone = true;
+                        continue;
+                    }
                     if (f.placement == eFighterType.mobside)
                         h.dst = rightside.First();
                     else
@@ -471,6 +525,8 @@ namespace PServer_v2.NetWork.Managers
         //End BattleRd for all players
         public void EndBattle()
         {
+            this.active = false;
+            endBattlePending = false;
             cFighter[] re = new cFighter[leftside.Count + rightside.Count];
             leftside.CopyTo(re);
             rightside.CopyTo(re, leftside.Count);
@@ -578,6 +634,10 @@ namespace PServer_v2.NetWork.Managers
             cFighter f = data.src;//player doing attack
             cFighter t = data.dst; //target of attack
             SkillItem skill = data.skill; //skill used
+            if (f == null || t == null || !f.alive || !t.alive)
+            {
+                return;
+            }
             //calc the attck and stuff in here
 
             //add to queue
@@ -737,7 +797,6 @@ namespace PServer_v2.NetWork.Managers
             {
                 case eFighterType.mobside:
                     {
-                        var totalspd = 0;
                         //foreach(cFighter u in leftside)
                         //totalspd += u.
                     } break;
@@ -773,7 +832,8 @@ namespace PServer_v2.NetWork.Managers
                             case Element.Water: return 0.7;
                             case Element.Wind: return 1.6;
                         }
-                    } break;
+                        return 1.0;
+                    }
                 case Element.Earth:
                     {
                         switch (target)
@@ -784,7 +844,8 @@ namespace PServer_v2.NetWork.Managers
                             case Element.Water: return 1.3;
                             case Element.Wind: return 0.6;
                         }
-                    } break;
+                        return 1.0;
+                    }
                 case Element.Water:
                     {
                         switch (target)
@@ -795,7 +856,8 @@ namespace PServer_v2.NetWork.Managers
                             case Element.Water: return 0.9;
                             case Element.Wind: return 0.9;
                         }
-                    } break;
+                        return 1.0;
+                    }
                 case Element.Wind:
                     {
                         switch (target)
@@ -806,9 +868,12 @@ namespace PServer_v2.NetWork.Managers
                             case Element.Water: return 1.0;
                             case Element.Wind: return 1.0;
                         }
-                    } break;
+                        return 1.0;
+                    }
+                case Element.noElement:
+                    return 1.0;
             }
-            return 0;
+            return 1.0;
         }
         List<cFighter> fightersbyspd()
         {
@@ -820,20 +885,20 @@ namespace PServer_v2.NetWork.Managers
 
         public void Calculate()
         {
-            bool racombo = false;
-            bool lacombo = false;
             //19 per attacker
             //order by spd
             //need to reorder based on speed
             //Second part is the Attk/miss
             var e = datacal.Dequeue();
-            if (e.skill.Name == "Flee")
+            if (e.skill != null && e.skill.Name == "Flee")
                 switch (e.src.placement)
                 {
                     case eFighterType.mobside:
                         {
                             if (leftside.Count - 1 <= 0)
+                            {
                                 EndBattle();
+                            }
                             else
                                 RemFighter(e.src);
                         } break;
@@ -867,7 +932,26 @@ namespace PServer_v2.NetWork.Managers
                 }
             else
             {
-                Send_Attack(e.src, e.skill.SkillID, e.dst, false, 10);
+                uint dmg = 0;
+                if (e.skill != null && e.dst != null && e.src != null)
+                {
+                    float elementCorr = (float)GetElementCorrection(e.src.element, e.dst.element);
+                    if (elementCorr <= 0) elementCorr = 1.0f;
+
+                    bool magic =
+                        e.skill.Elementfor != 0 ||
+                        (!string.IsNullOrEmpty(e.skill.Name) && e.skill.Name.IndexOf("spell", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                        (!string.IsNullOrEmpty(e.skill.Name) && e.skill.Name.IndexOf("magic", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                    int atkMatk = magic ? e.src.Matk : e.src.Atk;
+                    int defMdef = magic ? e.dst.Mdef : e.dst.Def;
+
+                    double raw = GetDamage(atkMatk, 0, defMdef, elementCorr);
+                    if (raw < 1) raw = 1;
+                    if (raw > 99999) raw = 99999;
+                    dmg = (uint)Math.Round(raw);
+                }
+                Send_Attack(e.src, e.skill != null ? e.skill.SkillID : (ushort)0, e.dst, false, dmg);
             }
 
         }
@@ -1004,6 +1088,7 @@ namespace PServer_v2.NetWork.Managers
                     globals.gServer.Multipkt_Request(rt.character);
                     globals.ac50.Send_6(src, 0, rt.character);
                     globals.ac50.Send_1(src, skill, dst, miss, Damg, rt.character);
+                    globals.ac51.Send_1(dst, 25, (ushort)dst.curhp, rt.character);
                     globals.gServer.SendCombinepkt(rt.character);
                 }
             }
@@ -1025,7 +1110,7 @@ namespace PServer_v2.NetWork.Managers
                 
                 if (!Checkforlife(true))
                 {
-                    EndBattle();
+                    ScheduleEndBattle();
                 }
             }
         }
